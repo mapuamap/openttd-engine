@@ -88,6 +88,7 @@
 #include "viewport_sprite_sorter.h"
 #include "bridge_map.h"
 #include "command_func.h"
+#include "network/network.h"
 #include "network/network_func.h"
 #include "framerate_type.h"
 #include "viewport_cmd.h"
@@ -2571,6 +2572,10 @@ bool ScrollWindowTo(int x, int y, int z, Window *w, bool instant)
 
 	w->viewport->dest_scrollpos_x = pt.x;
 	w->viewport->dest_scrollpos_y = pt.y;
+
+	/* A dedicated server never runs the window update loop, so apply the new position right away;
+	 * otherwise 'scrollto instant' followed by 'screenshot' still shows the old location. */
+	if (instant && _network_dedicated) UpdateViewportPosition(w, 0);
 	return true;
 }
 
