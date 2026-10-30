@@ -41,6 +41,7 @@ enum class Facility : uint8_t {
 	Desync, ///< Desync message facility.
 	Console, ///< Console message facility.
 	Random, ///< Random message facility.
+	Town, ///< Town growth simulation facility.
 	End, ///< End marker.
 };
 

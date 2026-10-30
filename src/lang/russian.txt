@@ -2264,6 +2264,22 @@ STR_CONFIG_SETTING_TOWN_GROWTH_SLOW                             :низкая
 STR_CONFIG_SETTING_TOWN_GROWTH_NORMAL                           :обычная
 STR_CONFIG_SETTING_TOWN_GROWTH_FAST                             :высокая
 STR_CONFIG_SETTING_TOWN_GROWTH_VERY_FAST                        :очень высокая
+STR_CONFIG_SETTING_TOWN_DENSITY                                 :Плотность населения городов: {STRING}
+STR_CONFIG_SETTING_TOWN_DENSITY_HELPTEXT                        :Сколько жителей приходится на единицу населения дома. Чем больше значение, тем меньше клеток нужно городу для большого населения; пассажиры и почта от домов не меняются
+STR_CONFIG_SETTING_TOWN_DENSITY_VALUE                           :x{COMMA}
+STR_CONFIG_SETTING_TOWN_GROWTH_BASE                             :Базовая скорость роста городов: {STRING}
+STR_CONFIG_SETTING_TOWN_GROWTH_BASE_HELPTEXT                    :Город получает 2 x константа x множитель x корень(население) жителей роста в год. По умолчанию полностью снабжаемый город из 1000 жителей за 100 лет вырастает до 500000
+STR_CONFIG_SETTING_TOWN_GROWTH_BASE_VALUE                       :{COMMA} промилле
+STR_CONFIG_SETTING_TOWN_NEED_TRANSPORT_PCT                      :Перевозка пассажиров и почты для полного снабжения: {STRING}
+STR_CONFIG_SETTING_TOWN_NEED_TRANSPORT_PCT_HELPTEXT             :Какую долю пассажиров и почты города нужно перевозить, чтобы потребности в пассажирах и почте были полностью закрыты
+STR_CONFIG_SETTING_TOWN_NEED_PERCENT_VALUE                      :{COMMA}%
+STR_CONFIG_SETTING_TOWN_NEED_GOODS_RESIDENTS                    :Потребность в товарах: единица на {STRING}
+STR_CONFIG_SETTING_TOWN_NEED_GOODS_RESIDENTS_HELPTEXT           :Скольким жителям нужна одна единица товаров в месяц, чтобы потребность в товарах была полностью закрыта
+STR_CONFIG_SETTING_TOWN_NEED_RESIDENTS_VALUE                    :{COMMA} жител{P ь я ей}
+STR_CONFIG_SETTING_TOWN_NEED_POWER_RESIDENTS                    :Потребность в электричестве: единица на {STRING}
+STR_CONFIG_SETTING_TOWN_NEED_POWER_RESIDENTS_HELPTEXT           :Скольким жителям нужна одна единица электричества в месяц. Электростанция делает единицу электричества из тонны угля
+STR_CONFIG_SETTING_TOWN_POWER_LINK_RADIUS                       :Максимальное расстояние от города до его электростанций: {STRING}
+STR_CONFIG_SETTING_TOWN_POWER_LINK_RADIUS_HELPTEXT              :Город подключается к ближайшим электростанциям не дальше этого числа клеток от центра. Чем больше город, тем больше у него электростанций
 
 STR_CONFIG_SETTING_LARGER_TOWNS                                 :Часть городов, которые станут мегаполисами: {STRING}
 STR_CONFIG_SETTING_LARGER_TOWNS_HELPTEXT                        :Часть городов, которая станет мегаполисами. Изначальный размер и скорость роста мегаполисов выше, чем у остальных городов.
@@ -3956,6 +3972,88 @@ STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH_DELIVERED                    :{ORANGE}{CARGO_
 STR_TOWN_VIEW_TOWN_GROWS_EVERY                                  :{BLACK}Город растёт раз в {ORANGE}{UNITS_DAYS_OR_SECONDS}
 STR_TOWN_VIEW_TOWN_GROWS_EVERY_FUNDED                           :{BLACK}Город растёт раз в {ORANGE}{UNITS_DAYS_OR_SECONDS} (профинансировано)
 STR_TOWN_VIEW_TOWN_GROW_STOPPED                                 :{BLACK}Город {RED}не{BLACK} развивается
+##### Supply-driven town growth: need names (spine)
+STR_TOWN_NEED_PASSENGERS                                        :Пассажиры
+STR_TOWN_NEED_MAIL                                              :Почта
+STR_TOWN_NEED_GOODS                                             :Товары
+STR_TOWN_NEED_ELECTRICITY                                       :Электричество
+
+##### Supply-driven town growth: needs module (town_growth.cpp)
+
+##### Supply-driven town growth: power module (town_power.cpp)
+
+##### Supply-driven town growth: GUI (town_gui.cpp, industry_gui.cpp)
+STR_TOWN_VIEW_SUPPLY_BUTTON                                     :{BLACK}Снабжение
+STR_TOWN_VIEW_SUPPLY_TOOLTIP                                    :{BLACK}Что нужно городу для роста - перевозка пассажиров и почты, товары и электричество - и какие электростанции его снабжают
+STR_TOWN_GROWTH_GROWING                                         :{BLACK}Рост: {GREEN}x{DECIMAL}{BLACK}, {GREEN}+{COMMA}{BLACK} жител{P ь я ей} в год
+STR_TOWN_GROWTH_GROWING_SLOW                                    :{BLACK}Рост: {ORANGE}x{DECIMAL}{BLACK}, {ORANGE}+{COMMA}{BLACK} жител{P ь я ей} в год
+STR_TOWN_GROWTH_BLOCKED_PASSENGERS                              :{BLACK}Не растёт: {RED}пассажиров не перевозят
+STR_TOWN_GROWTH_BLOCKED_MAIL                                    :{BLACK}Не растёт: {RED}почту не перевозят
+STR_TOWN_GROWTH_BLOCKED_GOODS                                   :{BLACK}Не растёт: {RED}нет товаров
+STR_TOWN_GROWTH_BLOCKED_ELECTRICITY                             :{BLACK}Не растёт: {RED}нет электричества
+STR_TOWN_GROWTH_BLOCKED_CARGO_GOAL                              :{BLACK}Не растёт: {RED}не доставлен нужный груз
+STR_TOWN_GROWTH_NO_SPACE                                        :{BLACK}Не растёт: {RED}нет места для роста
+STR_TOWN_GROWTH_DISABLED                                        :{BLACK}Рост городов {RED}отключён
+STR_TOWN_GROWTH_CUSTOM                                          :{BLACK}Ростом управляет игровой скрипт
+
+STR_TOWN_SUPPLY_CAPTION                                         :{WHITE}{TOWN}: снабжение и рост
+STR_TOWN_SUPPLY_CENTER_TOOLTIP                                  :{BLACK}Показать город в основном окне. Ctrl+щелчок - показать в дополнительном окне
+STR_TOWN_SUPPLY_POPULATION                                      :{BLACK}Население: {ORANGE}{COMMA}
+STR_TOWN_SUPPLY_BUDGET                                          :{BLACK}Запас роста: {ORANGE}{NUM}{BLACK} жител{P ь я ей}
+STR_TOWN_SUPPLY_GRACE                                           :{BLACK}До {COMMA} жител{P я ей ей} нехватка снабжения не останавливает рост
+STR_TOWN_SUPPLY_NEXT_NEED                                       :{BLACK}Следующая потребность: {ORANGE}{STRING}{BLACK} с {COMMA} жител{P я ей ей}
+STR_TOWN_SUPPLY_SUMMARY_TOOLTIP                                 :{BLACK}За год город получает 2{NBSP}x{NBSP}{DECIMAL}{NBSP}x{NBSP}множитель{NBSP}x{NBSP}корень из населения новых жителей. Множитель - произведение влияния всех потребностей на рост. Пока запас роста положительный, город строит новые кварталы домов
+STR_TOWN_SUPPLY_COLUMN_NEED                                     :{BLACK}Потребность
+STR_TOWN_SUPPLY_COLUMN_LEVEL                                    :{BLACK}Уровень
+STR_TOWN_SUPPLY_COLUMN_EFFECT                                   :{BLACK}Рост
+STR_TOWN_SUPPLY_COLUMN_COVERAGE                                 :{BLACK}Снабжение
+STR_TOWN_SUPPLY_MULTIPLIER                                      :x{DECIMAL}
+STR_TOWN_SUPPLY_COVERAGE                                        :{BLACK}{COMMA}%
+STR_TOWN_SUPPLY_NEED_LOCKED                                     :{GRAY}с {COMMA} жител{P я ей ей}
+STR_TOWN_SUPPLY_NEED_NOT_IN_CLIMATE                             :{GRAY}не нужно в этом климате
+STR_TOWN_SUPPLY_NEED_FORCED                                     :{LTBLUE}задано вручную
+STR_TOWN_SUPPLY_NEED_BLOCKING                                   :{RED}останавливает рост
+STR_TOWN_SUPPLY_DETAIL_TRANSPORTED                              :{BLACK}Перевезено за месяц: {ORANGE}{COMMA}{BLACK} / {CARGO_SHORT}
+STR_TOWN_SUPPLY_DETAIL_DELIVERED                                :{BLACK}Доставлено за месяц: {ORANGE}{COMMA}{BLACK} / {CARGO_SHORT}
+STR_TOWN_SUPPLY_DETAIL_ELECTRICITY                              :{BLACK}Получено за месяц: {ORANGE}{COMMA}{BLACK} / {COMMA} МВт·ч
+STR_TOWN_SUPPLY_DETAIL_PLAIN                                    :{BLACK}За месяц: {ORANGE}{COMMA}{BLACK} / {COMMA}
+STR_TOWN_SUPPLY_TOOLTIP_PASSENGERS                              :{BLACK}Пассажиры: какая доля пассажиров города перевозится. Полное снабжение - {COMMA}% перевезённых.{}Как улучшить: охватите станциями весь город и перевозите больше пассажиров.
+STR_TOWN_SUPPLY_TOOLTIP_MAIL                                    :{BLACK}Почта: какая доля почты города перевозится. Полное снабжение - {COMMA}% перевезённой. Нужна с {COMMA} жител{P я ей ей}.{}Как улучшить: охватите станциями весь город и перевозите больше почты.
+STR_TOWN_SUPPLY_TOOLTIP_GOODS                                   :{BLACK}Товары, доставленные в город. Полное снабжение - единица товаров в месяц на каждые {COMMA} жител{P я ей ей}. Нужны с {COMMA} жител{P я ей ей}.{}Как улучшить: везите товары с заводов на станции в городе.
+STR_TOWN_SUPPLY_TOOLTIP_ELECTRICITY                             :{BLACK}Электричество от электростанций, подключённых к городу (список ниже). Полное снабжение - 1 МВт·ч в месяц на каждые {COMMA} жител{P я ей ей}; электростанция делает 1 МВт·ч из тонны угля. Нужно с {COMMA} жител{P я ей ей}.{}Как улучшить: возите уголь на эти электростанции или постройте новую рядом с городом.
+STR_TOWN_SUPPLY_TOOLTIP_LEVELS                                  :{BLACK}Уровень по снабжению: 1{NBSP}от{NBSP}{COMMA}%, 2{NBSP}от{NBSP}{COMMA}%, 3{NBSP}от{NBSP}{COMMA}%, 4{NBSP}от{NBSP}{COMMA}%, 5{NBSP}от{NBSP}{COMMA}%.{}Влияние на рост: на уровне{NBSP}0 рост останавливается, 1:{NBSP}x{DECIMAL}, 2:{NBSP}x{DECIMAL}, 3:{NBSP}x{DECIMAL}, 4:{NBSP}x{DECIMAL}, 5:{NBSP}x{DECIMAL}.{}Пока потребность городу не нужна, она считается не ниже уровня{NBSP}3.
+STR_TOWN_SUPPLY_BOTTLENECK                                      :{BLACK}Узкое место: {ORANGE}{STRING}{BLACK} - {STRING}
+STR_TOWN_SUPPLY_BOTTLENECK_BLOCKING                             :{BLACK}Рост остановлен: {RED}{STRING}{BLACK} - {STRING}
+STR_TOWN_SUPPLY_ALL_SUPPLIED                                    :{GREEN}Все потребности полностью обеспечены
+STR_TOWN_SUPPLY_CARGO_GOAL                                      :{BLACK}Рост остановлен: {RED}доставьте груз, который требует город (см. окно города)
+STR_TOWN_SUPPLY_ACTION_PASSENGERS                               :перевозите больше пассажиров из города
+STR_TOWN_SUPPLY_ACTION_MAIL                                     :перевозите больше почты из города
+STR_TOWN_SUPPLY_ACTION_GOODS                                    :привозите в город больше товаров
+STR_TOWN_SUPPLY_ACTION_ELECTRICITY                              :возите больше угля на электростанции города
+STR_TOWN_SUPPLY_ACTION_NO_POWER_PLANT                           :постройте электростанцию рядом с городом
+STR_TOWN_SUPPLY_PLANTS_TITLE                                    :{BLACK}Электростанции города: {ORANGE}{COMMA}{BLACK} (город подключает до {COMMA})
+STR_TOWN_SUPPLY_PLANTS_COLUMN_NAME                              :{BLACK}Электростанция
+STR_TOWN_SUPPLY_PLANTS_COLUMN_DISTANCE                          :{BLACK}Расстояние
+STR_TOWN_SUPPLY_PLANTS_COLUMN_COAL                              :{BLACK}Запас угля
+STR_TOWN_SUPPLY_PLANTS_COLUMN_DELIVERED                         :{BLACK}Городу
+STR_TOWN_SUPPLY_PLANT_NAME                                      :{ORANGE}{INDUSTRY}
+STR_TOWN_SUPPLY_PLANT_DISTANCE                                  :{BLACK}{COMMA} клет{P ка ки ок}
+STR_TOWN_SUPPLY_PLANT_COAL                                      :{BLACK}{CARGO_SHORT}
+STR_TOWN_SUPPLY_PLANT_COAL_UNITS                                :{BLACK}{COMMA}
+STR_TOWN_SUPPLY_PLANT_NO_COAL                                   :{RED}нет угля
+STR_TOWN_SUPPLY_PLANT_DELIVERED                                 :{BLACK}{COMMA} МВт·ч
+STR_TOWN_SUPPLY_PLANTS_NONE                                     :{BLACK}Город не снабжает ни одна электростанция. Постройте или профинансируйте электростанцию не дальше {COMMA} клет{P ки ок ок} от центра города и возите на неё уголь
+STR_TOWN_SUPPLY_PLANTS_TOOLTIP                                  :{BLACK}Электростанции, которые снабжают город электричеством. Щелчок - показать электростанцию в основном окне. Ctrl+щелчок - открыть её окно
+
+STR_INDUSTRY_VIEW_POWER_COAL_STOCK                              :{BLACK}Запас угля: {YELLOW}{CARGO_SHORT}
+STR_INDUSTRY_VIEW_POWER_OUTPUT                                  :{BLACK}Выработано за месяц: {YELLOW}{COMMA} МВт·ч
+STR_INDUSTRY_VIEW_POWER_DEMAND                                  :{BLACK}Запрошено городами: {YELLOW}{COMMA} МВт·ч
+STR_INDUSTRY_VIEW_POWER_TOWNS                                   :{BLACK}Снабжает города:
+STR_INDUSTRY_VIEW_POWER_TOWN                                    :{ORANGE}{TOWN}{BLACK}: {COMMA} МВт·ч
+STR_INDUSTRY_VIEW_POWER_NO_TOWNS                                :{BLACK}К этой электростанции не подключён ни один город
+STR_INDUSTRY_VIEW_POWER_TOWN_TOOLTIP                            :{BLACK}Щелчок - показать город в основном окне. Ctrl+щелчок - открыть окно снабжения города
+
+##### End of supply-driven town growth
 STR_TOWN_VIEW_NOISE_IN_TOWN                                     :{BLACK}Уровень шума в городе: {ORANGE}{COMMA}{BLACK}  макс: {ORANGE}{COMMA}
 STR_TOWN_VIEW_CENTER_TOOLTIP                                    :{BLACK}Показать город в основном окне. Ctrl+щелчок - показать в дополнительном окне.
 STR_TOWN_VIEW_LOCAL_AUTHORITY_BUTTON                            :{BLACK}Администрация

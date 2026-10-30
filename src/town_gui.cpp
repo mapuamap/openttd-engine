@@ -48,6 +48,9 @@
 #include "zoom_func.h"
 #include "hotkeys.h"
 #include "graph_gui.h"
+#include "industry.h"
+#include "palette_func.h"
+#include "town_growth.h"
 
 #include "widgets/town_widget.h"
 
@@ -341,6 +344,87 @@ static void ShowTownAuthorityWindow(uint town)
 	AllocateWindowDescFront<TownAuthorityWindow>(_town_authority_desc, town);
 }
 
+void ShowTownSupplyWindow(TownID town);
+void ShowIndustryViewWindow(IndustryID industry);
+
+/**
+ * Get a growth multiplier as parameters for a {DECIMAL} string.
+ * @param multiplier The multiplier, per mille.
+ * @return The value and its number of decimals: rounded to two decimals (three below 0.1), without trailing zeros.
+ */
+static std::pair<uint64_t, int> GetMultiplierDecimal(uint32_t multiplier)
+{
+	if (multiplier == 0) return {0, 0};
+
+	uint64_t value = multiplier;
+	int decimals = 3;
+	if (multiplier >= 100) {
+		value = (multiplier + 5) / 10;
+		decimals = 2;
+	}
+	while (decimals > 1 && value % 10 == 0) {
+		value /= 10;
+		decimals--;
+	}
+	return {value, decimals};
+}
+
+/**
+ * Get the text colour that shows a need level.
+ * @param level The need level.
+ * @return Red for a missing supply, orange for a poor one, yellow for a neutral one and green for a good one.
+ */
+static TextColour GetTownNeedLevelTextColour(uint8_t level)
+{
+	if (level == 0) return TextColour::Red;
+	if (level < TOWN_NEED_LEVEL_NEUTRAL) return TextColour::Orange;
+	if (level == TOWN_NEED_LEVEL_NEUTRAL) return TextColour::Yellow;
+	return TextColour::Green;
+}
+
+/**
+ * Get the colour of the level boxes of a need level.
+ * @param level The need level.
+ * @return Colour of the filled boxes, matching #GetTownNeedLevelTextColour.
+ */
+static PixelColour GetTownNeedLevelPixelColour(uint8_t level)
+{
+	if (level == 0) return PC_RED;
+	if (level < TOWN_NEED_LEVEL_NEUTRAL) return PC_ORANGE;
+	if (level == TOWN_NEED_LEVEL_NEUTRAL) return PC_YELLOW;
+	return PC_GREEN;
+}
+
+/**
+ * Get the one line summary of the growth of a town.
+ * @param t The town.
+ * @return How fast the town grows, or why it does not grow.
+ */
+static std::string GetTownGrowthSummary(const Town *t)
+{
+	const TownGrowthState &growth = t->growth;
+	switch (growth.status) {
+		case TownGrowthStatus::Growing: {
+			auto [value, decimals] = GetMultiplierDecimal(growth.multiplier);
+			return GetString(growth.multiplier >= 1000 ? STR_TOWN_GROWTH_GROWING : STR_TOWN_GROWTH_GROWING_SLOW, value, decimals, growth.yearly_growth);
+		}
+
+		case TownGrowthStatus::Blocked:
+			switch (growth.blocking_need) {
+				case TownNeed::Passengers: return GetString(STR_TOWN_GROWTH_BLOCKED_PASSENGERS);
+				case TownNeed::Mail: return GetString(STR_TOWN_GROWTH_BLOCKED_MAIL);
+				case TownNeed::Goods: return GetString(STR_TOWN_GROWTH_BLOCKED_GOODS);
+				case TownNeed::Electricity: return GetString(STR_TOWN_GROWTH_BLOCKED_ELECTRICITY);
+				default: return GetString(STR_TOWN_GROWTH_BLOCKED_CARGO_GOAL);
+			}
+
+		case TownGrowthStatus::NoSpace: return GetString(STR_TOWN_GROWTH_NO_SPACE);
+		case TownGrowthStatus::Disabled: return GetString(STR_TOWN_GROWTH_DISABLED);
+		case TownGrowthStatus::Custom: return GetString(STR_TOWN_GROWTH_CUSTOM);
+	}
+	NOT_REACHED();
+}
+
 
 /** Town view window. */
 struct TownViewWindow : Window {
@@ -452,13 +536,8 @@ public:
 			tr.top += GetCharacterHeight(FontSize::Normal);
 		}
 
-		if (this->town->flags.Test(TownFlag::IsGrowing)) {
-			DrawString(tr, GetString(this->town->fund_buildings_months == 0 ? STR_TOWN_VIEW_TOWN_GROWS_EVERY : STR_TOWN_VIEW_TOWN_GROWS_EVERY_FUNDED, RoundDivSU(this->town->growth_rate + 1, Ticks::DAY_TICKS)));
-			tr.top += GetCharacterHeight(FontSize::Normal);
-		} else {
-			DrawString(tr, STR_TOWN_VIEW_TOWN_GROW_STOPPED);
-			tr.top += GetCharacterHeight(FontSize::Normal);
-		}
+		DrawString(tr, GetTownGrowthSummary(this->town));
+		tr.top += GetCharacterHeight(FontSize::Normal);
 
 		/* only show the town noise, if the noise option is activated. */
 		if (_settings_game.economy.station_noise_level) {
@@ -514,6 +593,10 @@ public:
 				ShowTownCargoGraph(this->window_number);
 				break;
 			}
+
+			case WID_TV_SUPPLY:
+				ShowTownSupplyWindow(this->town->index);
+				break;
 		}
 	}
 
@@ -631,6 +714,9 @@ static constexpr std::initializer_list<NWidgetPart> _nested_town_game_view_widge
 		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_SHOW_AUTHORITY), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_LOCAL_AUTHORITY_BUTTON, STR_TOWN_VIEW_LOCAL_AUTHORITY_TOOLTIP),
 		NWidget(WWT_TEXTBTN, Colours::Brown, WID_TV_CATCHMENT), SetMinimalSize(40, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_BUTTON_CATCHMENT, STR_TOOLTIP_CATCHMENT),
 		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_GRAPH), SetFill(1, 0), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_CARGO_GRAPH, STR_TOWN_VIEW_CARGO_GRAPH_TOOLTIP),
+	EndContainer(),
+	NWidget(NWID_HORIZONTAL),
+		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_SUPPLY), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_SUPPLY_BUTTON, STR_TOWN_VIEW_SUPPLY_TOOLTIP),
 		NWidget(WWT_RESIZEBOX, Colours::Brown),
 	EndContainer(),
 };
@@ -686,6 +772,633 @@ void ShowTownViewWindow(TownID town)
 	} else {
 		AllocateWindowDescFront<TownViewWindow>(_town_game_view_desc, town);
 	}
+}
+
+/**
+ * Get the cargo in which the supply of a need is counted.
+ * @param need The need.
+ * @return The cargo, or #INVALID_CARGO when the need is not counted in a cargo (electricity) or the cargo does not exist.
+ */
+static CargoType GetTownNeedCargo(TownNeed need)
+{
+	switch (need) {
+		case TownNeed::Passengers:
+		case TownNeed::Mail: {
+			const auto &cargoes = CargoSpec::town_production_cargoes[need == TownNeed::Passengers ? TownProductionEffect::Passengers : TownProductionEffect::Mail];
+			return cargoes.empty() ? INVALID_CARGO : cargoes.front()->Index();
+		}
+
+		case TownNeed::Goods: {
+			const CargoSpec *cs = FindFirstCargoWithTownAcceptanceEffect(TownAcceptanceEffect::Goods);
+			return cs == nullptr ? INVALID_CARGO : cs->Index();
+		}
+
+		default:
+			return INVALID_CARGO;
+	}
+}
+
+/**
+ * Find the need that limits the growth of a town most.
+ * @param t The town.
+ * @return The needed (unlocked) need with the lowest level, the lowest coverage on a tie;
+ *         #TownNeed::End when every needed need is at the highest level.
+ */
+static TownNeed FindTownBottleneck(const Town *t)
+{
+	TownNeed bottleneck = TownNeed::End;
+	uint8_t bottleneck_level = TOWN_NEED_LEVEL_MAX;
+	uint16_t bottleneck_coverage = 0;
+	for (TownNeed need : EnumRange(TownNeed::End)) {
+		if (!IsTownNeedUnlocked(t, need)) continue;
+
+		uint8_t level = GetTownNeedEffectiveLevel(t, need);
+		uint16_t coverage = t->growth.needs[need].coverage;
+		if (level >= TOWN_NEED_LEVEL_MAX) continue;
+		if (bottleneck != TownNeed::End && (level > bottleneck_level || (level == bottleneck_level && coverage >= bottleneck_coverage))) continue;
+
+		bottleneck = need;
+		bottleneck_level = level;
+		bottleneck_coverage = coverage;
+	}
+	return bottleneck;
+}
+
+/**
+ * Get what the player should do to improve the supply of a need.
+ * @param t The town.
+ * @param need The need.
+ * @return Short advice, to be used inside a sentence.
+ */
+static StringID GetTownNeedAction(const Town *t, TownNeed need)
+{
+	switch (need) {
+		case TownNeed::Passengers: return STR_TOWN_SUPPLY_ACTION_PASSENGERS;
+		case TownNeed::Mail: return STR_TOWN_SUPPLY_ACTION_MAIL;
+		case TownNeed::Goods: return STR_TOWN_SUPPLY_ACTION_GOODS;
+		case TownNeed::Electricity: return t->growth.power_links.empty() ? STR_TOWN_SUPPLY_ACTION_NO_POWER_PLANT : STR_TOWN_SUPPLY_ACTION_ELECTRICITY;
+		default: NOT_REACHED();
+	}
+}
+
+/** Widgets of the town supply window. */
+static constexpr std::initializer_list<NWidgetPart> _nested_town_supply_widgets = {
+	NWidget(NWID_HORIZONTAL),
+		NWidget(WWT_CLOSEBOX, Colours::Brown),
+		NWidget(WWT_CAPTION, Colours::Brown, WID_TS_CAPTION),
+		NWidget(WWT_PUSHIMGBTN, Colours::Brown, WID_TS_CENTER_VIEW), SetAspect(WidgetDimensions::ASPECT_LOCATION), SetSpriteTip(SPR_GOTO_LOCATION, STR_TOWN_SUPPLY_CENTER_TOOLTIP),
+		NWidget(WWT_SHADEBOX, Colours::Brown),
+		NWidget(WWT_DEFSIZEBOX, Colours::Brown),
+		NWidget(WWT_STICKYBOX, Colours::Brown),
+	EndContainer(),
+	NWidget(WWT_PANEL, Colours::Brown, WID_TS_SUMMARY), SetFill(1, 0), SetResize(1, 0), EndContainer(),
+	NWidget(WWT_PANEL, Colours::Brown, WID_TS_NEEDS), SetFill(1, 0), SetResize(1, 0), EndContainer(),
+	NWidget(WWT_PANEL, Colours::Brown, WID_TS_HINT), SetFill(1, 0), SetResize(1, 0), EndContainer(),
+	NWidget(NWID_HORIZONTAL),
+		NWidget(WWT_PANEL, Colours::Brown, WID_TS_PLANTS), SetFill(1, 1), SetResize(1, 1), SetScrollbar(WID_TS_PLANTS_SCROLLBAR), SetToolTip(STR_TOWN_SUPPLY_PLANTS_TOOLTIP), EndContainer(),
+		NWidget(NWID_VERTICAL),
+			NWidget(NWID_VSCROLLBAR, Colours::Brown, WID_TS_PLANTS_SCROLLBAR),
+			NWidget(WWT_RESIZEBOX, Colours::Brown),
+		EndContainer(),
+	EndContainer(),
+};
+
+/** Town supply window: the needs of a town, how well they are supplied, and the power plants that supply the town. */
+struct TownSupplyWindow : Window {
+private:
+	static constexpr uint MIN_PLANT_ROWS = 4; ///< Minimal number of rows of the power plant list.
+	static constexpr uint PLANT_HEADER_LINES = 2; ///< Lines above the power plant rows: title and column headers.
+
+	std::vector<TownPowerLink> plants{}; ///< Valid power plant links of the town, as shown in the list.
+	Scrollbar *vscroll = nullptr; ///< Scrollbar of the power plant list.
+	uint summary_lines = 0; ///< Number of lines of the summary panel the window is sized for.
+
+	Dimension pip_size{}; ///< Size of one box of the level display.
+	int need_row_height = 0; ///< Height of the first line of a need: name, level, effect and coverage.
+	int need_block_height = 0; ///< Height of all lines of one need.
+	int need_name_width = 0; ///< Width of the need name column.
+	int need_level_width = 0; ///< Width of the level column.
+	int need_effect_width = 0; ///< Width of the growth effect column.
+	int need_coverage_width = 0; ///< Width of the coverage column.
+	int plant_distance_width = 0; ///< Width of the distance column of the power plant list.
+	int plant_coal_width = 0; ///< Width of the coal stock column of the power plant list.
+	int plant_delivered_width = 0; ///< Width of the delivered electricity column of the power plant list.
+
+	/**
+	 * Get the town of the window.
+	 * @return The town, or \c nullptr when it does not exist anymore.
+	 */
+	const Town *GetTown() const
+	{
+		return Town::GetIfValid(this->window_number);
+	}
+
+	/**
+	 * Get the lines of the summary panel.
+	 * @param t The town.
+	 * @return The lines to draw.
+	 */
+	static std::vector<std::string> GetSummaryLines(const Town *t)
+	{
+		std::vector<std::string> lines;
+		lines.push_back(GetString(STR_TOWN_SUPPLY_POPULATION, t->cache.population));
+		lines.push_back(GetTownGrowthSummary(t));
+
+		int64_t budget = t->growth.budget;
+		lines.push_back(GetString(STR_TOWN_SUPPLY_BUDGET, (budget + (budget < 0 ? -500 : 500)) / 1000));
+
+		if (t->cache.population < TownGrowthBalance::GRACE_POPULATION) {
+			lines.push_back(GetString(STR_TOWN_SUPPLY_GRACE, TownGrowthBalance::GRACE_POPULATION));
+		}
+
+		for (TownNeed need : EnumRange(TownNeed::End)) {
+			if (IsTownNeedUnlocked(t, need) || GetTownNeedUnlockPopulation(need) == UINT32_MAX) continue;
+			lines.push_back(GetString(STR_TOWN_SUPPLY_NEXT_NEED, GetTownNeedName(need), GetTownNeedUnlockPopulation(need)));
+			break;
+		}
+		return lines;
+	}
+
+	/**
+	 * Get the advice line of the hint panel.
+	 * @param t The town.
+	 * @return The line to draw.
+	 */
+	static std::string GetHintLine(const Town *t)
+	{
+		const TownGrowthState &growth = t->growth;
+		if (growth.status == TownGrowthStatus::Blocked) {
+			if (growth.blocking_need == TownNeed::End) return GetString(STR_TOWN_SUPPLY_CARGO_GOAL);
+			return GetString(STR_TOWN_SUPPLY_BOTTLENECK_BLOCKING, GetTownNeedName(growth.blocking_need), GetTownNeedAction(t, growth.blocking_need));
+		}
+
+		TownNeed bottleneck = FindTownBottleneck(t);
+		if (bottleneck == TownNeed::End) return GetString(STR_TOWN_SUPPLY_ALL_SUPPLIED);
+		return GetString(STR_TOWN_SUPPLY_BOTTLENECK, GetTownNeedName(bottleneck), GetTownNeedAction(t, bottleneck));
+	}
+
+	/**
+	 * Get the second line of a need: what was supplied and what was needed last month.
+	 * @param need The need.
+	 * @param state The supply state of the need.
+	 * @return The line to draw.
+	 */
+	static std::string GetNeedDetailLine(TownNeed need, const TownNeedState &state)
+	{
+		if (need == TownNeed::Electricity) return GetString(STR_TOWN_SUPPLY_DETAIL_ELECTRICITY, state.supplied, state.demand);
+
+		CargoType cargo = GetTownNeedCargo(need);
+		if (!IsValidCargoType(cargo)) return GetString(STR_TOWN_SUPPLY_DETAIL_PLAIN, state.supplied, state.demand);
+
+		return GetString(need == TownNeed::Goods ? STR_TOWN_SUPPLY_DETAIL_DELIVERED : STR_TOWN_SUPPLY_DETAIL_TRANSPORTED, state.supplied, cargo, state.demand);
+	}
+
+	/**
+	 * Get the marker after the coverage of a need: not needed yet, forced, or blocking growth.
+	 * @param t The town.
+	 * @param need The need.
+	 * @return The marker, or an empty string.
+	 */
+	static std::string GetNeedMarker(const Town *t, TownNeed need)
+	{
+		const TownNeedState &state = t->growth.needs[need];
+		if (state.forced != TOWN_NEED_NOT_FORCED) return GetString(STR_TOWN_SUPPLY_NEED_FORCED);
+		if (GetTownNeedUnlockPopulation(need) == UINT32_MAX) return GetString(STR_TOWN_SUPPLY_NEED_NOT_IN_CLIMATE);
+		if (!IsTownNeedUnlocked(t, need)) return GetString(STR_TOWN_SUPPLY_NEED_LOCKED, GetTownNeedUnlockPopulation(need));
+		if (t->growth.status == TownGrowthStatus::Blocked && t->growth.blocking_need == need) return GetString(STR_TOWN_SUPPLY_NEED_BLOCKING);
+		return {};
+	}
+
+	/** Collect the valid power plant links of the town for the list and update the scrollbar. */
+	void RebuildPlantList()
+	{
+		this->plants.clear();
+		const Town *t = this->GetTown();
+		if (t != nullptr) {
+			for (const TownPowerLink &link : t->growth.power_links) {
+				if (Industry::IsValidID(link.plant)) this->plants.push_back(link);
+			}
+		}
+		this->vscroll->SetCount(this->plants.size());
+	}
+
+	/**
+	 * Draw the five level boxes of a need.
+	 * @param r Rectangle to draw in; the boxes are centred vertically.
+	 * @param level The level to show.
+	 */
+	void DrawLevelBoxes(const Rect &r, uint8_t level) const
+	{
+		bool rtl = _current_text_dir == TD_RTL;
+		int gap = WidgetDimensions::scaled.hsep_normal;
+		int border = WidgetDimensions::scaled.bevel.left;
+		int top = CentreBounds(r.top, r.bottom, this->pip_size.height);
+
+		Rect box = r.WithWidth(this->pip_size.width, rtl);
+		box.top = top;
+		box.bottom = top + this->pip_size.height - 1;
+		for (uint8_t i = 1; i <= TOWN_NEED_LEVEL_MAX; i++) {
+			GfxFillRect(box, level == 0 ? PC_RED : PC_BLACK);
+			GfxFillRect(box.Shrink(border), i <= level ? GetTownNeedLevelPixelColour(level) : GetColourGradient(Colours::Brown, Shade::Dark));
+			box = box.Translate(rtl ? -(this->pip_size.width + gap) : this->pip_size.width + gap, 0);
+		}
+	}
+
+	/**
+	 * Draw the summary panel.
+	 * @param r Rectangle of the panel.
+	 * @param t The town.
+	 */
+	void DrawSummary(const Rect &r, const Town *t) const
+	{
+		Rect tr = r.Shrink(WidgetDimensions::scaled.framerect);
+		for (const std::string &line : GetSummaryLines(t)) {
+			DrawString(tr, line);
+			tr.top += GetCharacterHeight(FontSize::Normal);
+		}
+	}
+
+	/**
+	 * Draw the needs panel.
+	 * @param r Rectangle of the panel.
+	 * @param t The town.
+	 */
+	void DrawNeeds(const Rect &r, const Town *t) const
+	{
+		bool rtl = _current_text_dir == TD_RTL;
+		int gap = WidgetDimensions::scaled.hsep_wide;
+		int text_offset = (this->need_row_height - GetCharacterHeight(FontSize::Normal)) / 2;
+		Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
+
+		/* Split a line into the columns of the table. */
+		auto columns = [&](const Rect &line) {
+			Rect name = line.WithWidth(this->need_name_width, rtl);
+			Rect rest = line.Indent(this->need_name_width + gap, rtl);
+			Rect level = rest.WithWidth(this->need_level_width, rtl);
+			rest = rest.Indent(this->need_level_width + gap, rtl);
+			Rect effect = rest.WithWidth(this->need_effect_width, rtl);
+			rest = rest.Indent(this->need_effect_width + gap, rtl);
+			Rect coverage = rest.WithWidth(this->need_coverage_width, rtl);
+			rest = rest.Indent(this->need_coverage_width + gap, rtl);
+			return std::array<Rect, 5>{name, level, effect, coverage, rest};
+		};
+
+		auto header = columns(ir.WithHeight(GetCharacterHeight(FontSize::Normal)));
+		DrawString(header[0], STR_TOWN_SUPPLY_COLUMN_NEED);
+		DrawString(header[1], STR_TOWN_SUPPLY_COLUMN_LEVEL);
+		DrawString(header[2], STR_TOWN_SUPPLY_COLUMN_EFFECT);
+		DrawString(header[3], STR_TOWN_SUPPLY_COLUMN_COVERAGE, TextColour::FromString, AlignmentH::End);
+		ir.top += GetCharacterHeight(FontSize::Normal) + WidgetDimensions::scaled.vsep_normal;
+
+		for (TownNeed need : EnumRange(TownNeed::End)) {
+			const TownNeedState &state = t->growth.needs[need];
+			uint8_t level = GetTownNeedEffectiveLevel(t, need);
+			bool unlocked = IsTownNeedUnlocked(t, need);
+
+			auto cells = columns(ir.WithHeight(this->need_row_height));
+			DrawString(cells[0].Translate(0, text_offset), GetTownNeedName(need), unlocked ? TextColour::Orange : TextColour::Grey);
+			this->DrawLevelBoxes(cells[1], level);
+			auto [value, decimals] = GetMultiplierDecimal(GetTownNeedLevelMultiplier(level));
+			DrawString(cells[2].Translate(0, text_offset), GetString(STR_TOWN_SUPPLY_MULTIPLIER, value, decimals), GetTownNeedLevelTextColour(level));
+			DrawString(cells[3].Translate(0, text_offset), GetString(STR_TOWN_SUPPLY_COVERAGE, state.coverage), TextColour::FromString, AlignmentH::End);
+			DrawString(cells[4].Translate(0, text_offset), GetNeedMarker(t, need));
+
+			Rect detail = ir.Indent(WidgetDimensions::scaled.hsep_indent, rtl);
+			detail.top += this->need_row_height;
+			DrawString(detail, GetNeedDetailLine(need, state));
+
+			ir.top += this->need_block_height;
+		}
+	}
+
+	/**
+	 * Draw the power plant list.
+	 * @param r Rectangle of the panel.
+	 * @param t The town.
+	 */
+	void DrawPlants(const Rect &r, const Town *t) const
+	{
+		bool rtl = _current_text_dir == TD_RTL;
+		int gap = WidgetDimensions::scaled.hsep_wide;
+		int line_height = GetCharacterHeight(FontSize::Normal);
+		Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
+
+		DrawString(ir, GetString(STR_TOWN_SUPPLY_PLANTS_TITLE, this->plants.size(), GetTownWantedPowerLinks(t)));
+		ir.top += line_height;
+
+		if (this->plants.empty()) {
+			DrawStringMultiLine(ir, GetString(STR_TOWN_SUPPLY_PLANTS_NONE, _settings_game.economy.town_power_link_radius));
+			return;
+		}
+
+		/* Split a line into the columns of the list. */
+		auto columns = [&](const Rect &line) {
+			Rect rest = line;
+			Rect delivered = rest.WithWidth(this->plant_delivered_width, !rtl);
+			rest = rest.Indent(this->plant_delivered_width + gap, !rtl);
+			Rect coal = rest.WithWidth(this->plant_coal_width, !rtl);
+			rest = rest.Indent(this->plant_coal_width + gap, !rtl);
+			Rect distance = rest.WithWidth(this->plant_distance_width, !rtl);
+			rest = rest.Indent(this->plant_distance_width + gap, !rtl);
+			return std::array<Rect, 4>{rest, distance, coal, delivered};
+		};
+
+		auto header = columns(ir.WithHeight(line_height));
+		DrawString(header[0], STR_TOWN_SUPPLY_PLANTS_COLUMN_NAME);
+		DrawString(header[1], STR_TOWN_SUPPLY_PLANTS_COLUMN_DISTANCE, TextColour::FromString, AlignmentH::End);
+		DrawString(header[2], STR_TOWN_SUPPLY_PLANTS_COLUMN_COAL, TextColour::FromString, AlignmentH::End);
+		DrawString(header[3], STR_TOWN_SUPPLY_PLANTS_COLUMN_DELIVERED, TextColour::FromString, AlignmentH::End);
+		ir.top += line_height;
+
+		auto [first, last] = this->vscroll->GetVisibleRangeIterators(this->plants);
+		for (auto it = first; it != last; ++it) {
+			const Industry *i = Industry::Get(it->plant);
+			auto cells = columns(ir.WithHeight(line_height));
+
+			DrawString(cells[0], GetString(STR_TOWN_SUPPLY_PLANT_NAME, i->index));
+			DrawString(cells[1], GetString(STR_TOWN_SUPPLY_PLANT_DISTANCE, DistanceManhattan(t->xy, i->location.GetCentreTile())), TextColour::FromString, AlignmentH::End);
+
+			uint32_t stock = GetPowerPlantFuelStock(i);
+			CargoType fuel = GetPowerPlantFuelCargo(i);
+			std::string coal;
+			if (stock == 0) {
+				coal = GetString(STR_TOWN_SUPPLY_PLANT_NO_COAL);
+			} else if (IsValidCargoType(fuel)) {
+				coal = GetString(STR_TOWN_SUPPLY_PLANT_COAL, fuel, stock);
+			} else {
+				coal = GetString(STR_TOWN_SUPPLY_PLANT_COAL_UNITS, stock);
+			}
+			DrawString(cells[2], coal, TextColour::FromString, AlignmentH::End);
+			DrawString(cells[3], GetString(STR_TOWN_SUPPLY_PLANT_DELIVERED, it->delivered), TextColour::FromString, AlignmentH::End);
+
+			ir.top += line_height;
+		}
+	}
+
+public:
+	TownSupplyWindow(WindowDesc &desc, WindowNumber window_number) : Window(desc)
+	{
+		this->CreateNestedTree();
+		this->vscroll = this->GetScrollbar(WID_TS_PLANTS_SCROLLBAR);
+		this->FinishInitNested(window_number);
+		this->RebuildPlantList();
+	}
+
+	void OnInit() override
+	{
+		uint size = GetCharacterHeight(FontSize::Normal) - 2 * WidgetDimensions::scaled.vsep_normal;
+		this->pip_size = {size, size};
+		this->need_row_height = std::max<int>(GetCharacterHeight(FontSize::Normal), this->pip_size.height);
+		this->need_block_height = this->need_row_height + GetCharacterHeight(FontSize::Normal) + WidgetDimensions::scaled.vsep_wide;
+	}
+
+	std::string GetWidgetString(WidgetID widget, StringID stringid) const override
+	{
+		if (widget == WID_TS_CAPTION) {
+			const Town *t = this->GetTown();
+			return t == nullptr ? std::string{} : GetString(STR_TOWN_SUPPLY_CAPTION, t->index);
+		}
+
+		return this->Window::GetWidgetString(widget, stringid);
+	}
+
+	void UpdateWidgetSize(WidgetID widget, Dimension &size, [[maybe_unused]] const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
+	{
+		const Town *t = this->GetTown();
+		if (t == nullptr) return;
+
+		switch (widget) {
+			case WID_TS_SUMMARY: {
+				std::vector<std::string> lines = GetSummaryLines(t);
+				this->summary_lines = static_cast<uint>(lines.size());
+				Dimension d{0, 0};
+				for (const std::string &line : lines) d = maxdim(d, GetStringBoundingBox(line));
+				size.width = std::max(size.width, d.width + padding.width);
+				size.height = this->summary_lines * GetCharacterHeight(FontSize::Normal) + padding.height;
+				break;
+			}
+
+			case WID_TS_NEEDS: {
+				int gap = WidgetDimensions::scaled.hsep_wide;
+				this->need_name_width = GetStringBoundingBox(STR_TOWN_SUPPLY_COLUMN_NEED).width;
+				for (TownNeed need : EnumRange(TownNeed::End)) {
+					this->need_name_width = std::max<int>(this->need_name_width, GetStringBoundingBox(GetTownNeedName(need)).width);
+				}
+				this->need_level_width = std::max<int>(GetStringBoundingBox(STR_TOWN_SUPPLY_COLUMN_LEVEL).width,
+						TOWN_NEED_LEVEL_MAX * this->pip_size.width + (TOWN_NEED_LEVEL_MAX - 1) * WidgetDimensions::scaled.hsep_normal);
+				this->need_effect_width = GetStringBoundingBox(STR_TOWN_SUPPLY_COLUMN_EFFECT).width;
+				for (uint8_t level = 0; level <= TOWN_NEED_LEVEL_MAX; level++) {
+					auto [value, decimals] = GetMultiplierDecimal(GetTownNeedLevelMultiplier(level));
+					this->need_effect_width = std::max<int>(this->need_effect_width, GetStringBoundingBox(GetString(STR_TOWN_SUPPLY_MULTIPLIER, value, decimals)).width);
+				}
+				this->need_coverage_width = std::max(GetStringBoundingBox(STR_TOWN_SUPPLY_COLUMN_COVERAGE).width,
+						GetStringBoundingBox(GetString(STR_TOWN_SUPPLY_COVERAGE, GetParamMaxDigits(3))).width);
+
+				/* The marker column and the detail lines. */
+				uint max_count = GetParamMaxDigits(7);
+				int marker_width = std::max({GetStringBoundingBox(STR_TOWN_SUPPLY_NEED_FORCED).width, GetStringBoundingBox(STR_TOWN_SUPPLY_NEED_BLOCKING).width,
+						GetStringBoundingBox(GetString(STR_TOWN_SUPPLY_NEED_LOCKED, GetParamMaxDigits(5))).width});
+				int width = this->need_name_width + this->need_level_width + this->need_effect_width + this->need_coverage_width + marker_width + 4 * gap;
+				for (TownNeed need : EnumRange(TownNeed::End)) {
+					TownNeedState sample{};
+					sample.supplied = max_count;
+					sample.demand = max_count;
+					width = std::max<int>(width, WidgetDimensions::scaled.hsep_indent + GetStringBoundingBox(GetNeedDetailLine(need, sample)).width);
+				}
+
+				size.width = std::max<uint>(size.width, width + padding.width);
+				size.height = GetCharacterHeight(FontSize::Normal) + WidgetDimensions::scaled.vsep_normal + to_underlying(TownNeed::End) * this->need_block_height - WidgetDimensions::scaled.vsep_wide + padding.height;
+				break;
+			}
+
+			case WID_TS_HINT: {
+				/* Make room for the longest advice, so it always fits on one line. */
+				Dimension d = maxdim(GetStringBoundingBox(STR_TOWN_SUPPLY_ALL_SUPPLIED), GetStringBoundingBox(STR_TOWN_SUPPLY_CARGO_GOAL));
+				for (TownNeed need : EnumRange(TownNeed::End)) {
+					for (StringID action : {STR_TOWN_SUPPLY_ACTION_PASSENGERS, STR_TOWN_SUPPLY_ACTION_MAIL, STR_TOWN_SUPPLY_ACTION_GOODS, STR_TOWN_SUPPLY_ACTION_ELECTRICITY, STR_TOWN_SUPPLY_ACTION_NO_POWER_PLANT}) {
+						d = maxdim(d, GetStringBoundingBox(GetString(STR_TOWN_SUPPLY_BOTTLENECK_BLOCKING, GetTownNeedName(need), action)));
+						d = maxdim(d, GetStringBoundingBox(GetString(STR_TOWN_SUPPLY_BOTTLENECK, GetTownNeedName(need), action)));
+					}
+				}
+				size.width = std::max(size.width, d.width + padding.width);
+				size.height = GetCharacterHeight(FontSize::Normal) + padding.height;
+				break;
+			}
+
+			case WID_TS_PLANTS: {
+				this->plant_distance_width = std::max(GetStringBoundingBox(STR_TOWN_SUPPLY_PLANTS_COLUMN_DISTANCE).width,
+						GetStringBoundingBox(GetString(STR_TOWN_SUPPLY_PLANT_DISTANCE, GetParamMaxDigits(4))).width);
+				CargoType coal = GetCargoTypeByLabel(CT_COAL);
+				this->plant_coal_width = std::max({GetStringBoundingBox(STR_TOWN_SUPPLY_PLANTS_COLUMN_COAL).width, GetStringBoundingBox(STR_TOWN_SUPPLY_PLANT_NO_COAL).width,
+						GetStringBoundingBox(GetString(STR_TOWN_SUPPLY_PLANT_COAL_UNITS, GetParamMaxDigits(6))).width});
+				if (IsValidCargoType(coal)) {
+					this->plant_coal_width = std::max<int>(this->plant_coal_width, GetStringBoundingBox(GetString(STR_TOWN_SUPPLY_PLANT_COAL, coal, GetParamMaxDigits(6))).width);
+				}
+				this->plant_delivered_width = std::max(GetStringBoundingBox(STR_TOWN_SUPPLY_PLANTS_COLUMN_DELIVERED).width,
+						GetStringBoundingBox(GetString(STR_TOWN_SUPPLY_PLANT_DELIVERED, GetParamMaxDigits(6))).width);
+
+				int gap = WidgetDimensions::scaled.hsep_wide;
+				int name_width = GetStringBoundingBox(STR_TOWN_SUPPLY_PLANTS_COLUMN_NAME).width * 2;
+				size.width = std::max<uint>(size.width, name_width + this->plant_distance_width + this->plant_coal_width + this->plant_delivered_width + 3 * gap + padding.width);
+
+				fill.height = resize.height = GetCharacterHeight(FontSize::Normal);
+				size.height = (PLANT_HEADER_LINES + MIN_PLANT_ROWS) * resize.height + padding.height;
+				break;
+			}
+		}
+	}
+
+	void OnPaint() override
+	{
+		this->RebuildPlantList();
+		this->DrawWidgets();
+	}
+
+	void DrawWidget(const Rect &r, WidgetID widget) const override
+	{
+		const Town *t = this->GetTown();
+		if (t == nullptr) return;
+
+		switch (widget) {
+			case WID_TS_SUMMARY:
+				this->DrawSummary(r, t);
+				break;
+
+			case WID_TS_NEEDS:
+				this->DrawNeeds(r, t);
+				break;
+
+			case WID_TS_HINT:
+				DrawString(r.Shrink(WidgetDimensions::scaled.framerect), GetHintLine(t));
+				break;
+
+			case WID_TS_PLANTS:
+				this->DrawPlants(r, t);
+				break;
+		}
+	}
+
+	void OnResize() override
+	{
+		this->vscroll->SetCapacityFromWidget(this, WID_TS_PLANTS, WidgetDimensions::scaled.framerect.Vertical() + PLANT_HEADER_LINES * GetCharacterHeight(FontSize::Normal));
+	}
+
+	void OnClick([[maybe_unused]] Point pt, WidgetID widget, [[maybe_unused]] int click_count) override
+	{
+		const Town *t = this->GetTown();
+		if (t == nullptr) return;
+
+		switch (widget) {
+			case WID_TS_CENTER_VIEW:
+				if (_ctrl_pressed) {
+					ShowExtraViewportWindow(t->xy);
+				} else {
+					ScrollMainWindowToTile(t->xy);
+				}
+				break;
+
+			case WID_TS_PLANTS: {
+				auto it = this->vscroll->GetScrolledItemFromWidget(this->plants, pt.y, this, WID_TS_PLANTS, WidgetDimensions::scaled.framerect.top + PLANT_HEADER_LINES * GetCharacterHeight(FontSize::Normal));
+				if (it == this->plants.end()) break;
+
+				const Industry *i = Industry::GetIfValid(it->plant);
+				if (i == nullptr) break;
+				if (_ctrl_pressed) {
+					ShowIndustryViewWindow(i->index);
+				} else {
+					ScrollMainWindowToTile(i->location.GetCentreTile());
+				}
+				break;
+			}
+		}
+	}
+
+	bool OnTooltip(Point pt, WidgetID widget, TooltipCloseCondition close_cond) override
+	{
+		const Town *t = this->GetTown();
+		if (t == nullptr) return false;
+
+		switch (widget) {
+			case WID_TS_SUMMARY:
+				GuiShowTooltips(this, GetEncodedString(STR_TOWN_SUPPLY_SUMMARY_TOOLTIP, _settings_game.economy.town_growth_base, 3), close_cond);
+				return true;
+
+			case WID_TS_NEEDS: {
+				/* Coverage thresholds of levels 1..5, then the multipliers of levels 1..5 as value and decimals. */
+				std::vector<StringParameter> params;
+				for (uint16_t coverage : TownGrowthBalance::LEVEL_COVERAGE) params.emplace_back(static_cast<uint64_t>(coverage));
+				for (uint8_t level = 1; level <= TOWN_NEED_LEVEL_MAX; level++) {
+					auto [value, decimals] = GetMultiplierDecimal(GetTownNeedLevelMultiplier(level));
+					params.emplace_back(value);
+					params.emplace_back(static_cast<uint64_t>(decimals));
+				}
+				std::string levels = GetStringWithArgs(STR_TOWN_SUPPLY_TOOLTIP_LEVELS, params);
+
+				const NWidgetBase *nwid = this->GetWidget<NWidgetBase>(WID_TS_NEEDS);
+				int y = pt.y - nwid->pos_y - WidgetDimensions::scaled.framerect.top - GetCharacterHeight(FontSize::Normal) - WidgetDimensions::scaled.vsep_normal;
+				int row = y < 0 ? -1 : y / this->need_block_height;
+
+				std::string text;
+				const auto &economy = _settings_game.economy;
+				switch (row) {
+					case to_underlying(TownNeed::Passengers):
+						text = GetString(STR_TOWN_SUPPLY_TOOLTIP_PASSENGERS, economy.town_need_transport_pct);
+						break;
+					case to_underlying(TownNeed::Mail):
+						text = GetString(STR_TOWN_SUPPLY_TOOLTIP_MAIL, economy.town_need_transport_pct, GetTownNeedUnlockPopulation(TownNeed::Mail));
+						break;
+					case to_underlying(TownNeed::Goods):
+						text = GetString(STR_TOWN_SUPPLY_TOOLTIP_GOODS, economy.town_need_goods_residents, GetTownNeedUnlockPopulation(TownNeed::Goods));
+						break;
+					case to_underlying(TownNeed::Electricity):
+						text = GetString(STR_TOWN_SUPPLY_TOOLTIP_ELECTRICITY, economy.town_need_power_residents, GetTownNeedUnlockPopulation(TownNeed::Electricity));
+						break;
+					default:
+						break;
+				}
+				if (!text.empty()) text += "\n\n";
+				text += levels;
+
+				GuiShowTooltips(this, GetEncodedString(STR_JUST_RAW_STRING, std::move(text)), close_cond);
+				return true;
+			}
+
+			default:
+				return false;
+		}
+	}
+
+	/** Refresh the window regularly: the supply is updated monthly, the plant list and the summary may change any time. */
+	const IntervalTimer<TimerWindow> refresh_interval = {std::chrono::seconds(1), [this](auto) {
+		const Town *t = this->GetTown();
+		if (t == nullptr) {
+			this->Close();
+			return;
+		}
+
+		if (GetSummaryLines(t).size() != this->summary_lines) {
+			this->ReInit();
+		} else {
+			this->SetDirty();
+		}
+	}};
+};
+
+/** Window definition of the town supply window. */
+static WindowDesc _town_supply_desc(
+	WindowPosition::Automatic, "view_town_supply", 0, 0,
+	WindowClass::TownSupply, WindowClass::TownView,
+	{},
+	_nested_town_supply_widgets
+);
+
+/**
+ * Show the supply window of a town: its needs, how they are supplied and its power plants.
+ * @param town The town.
+ */
+void ShowTownSupplyWindow(TownID town)
+{
+	AllocateWindowDescFront<TownSupplyWindow>(_town_supply_desc, town);
 }
 
 static constexpr std::initializer_list<NWidgetPart> _nested_town_directory_widgets = {

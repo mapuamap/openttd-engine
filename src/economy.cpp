@@ -13,6 +13,7 @@
 #include "command_func.h"
 #include "industry.h"
 #include "town.h"
+#include "town_growth.h"
 #include "news_func.h"
 #include "network/network.h"
 #include "network/network_func.h"
@@ -1108,7 +1109,8 @@ static Money DeliverGoods(int num_pieces, CargoType cargo_type, StationID dest, 
 
 	/* Increase town's counter for town effects */
 	const CargoSpec *cs = CargoSpec::Get(cargo_type);
-	st->town->received[cs->town_acceptance_effect].new_act += accepted_total;
+	auto &received = st->town->received[cs->town_acceptance_effect];
+	received.new_act = ClampTo<uint16_t>(received.new_act + accepted_total);
 	if (accepted_total - accepted_ind > 0) {
 		/* Cargo not delivered to an industry must go to the town. */
 		st->town->GetOrCreateCargoAccepted(cargo_type).history[THIS_MONTH].accepted += accepted_total - accepted_ind;
@@ -1152,8 +1154,12 @@ static void TriggerIndustryProduction(Industry *i)
 			SetWindowDirty(WindowClass::IndustryView, i->index);
 		}
 	} else {
+		/* Power plants keep their fuel as a stock; the power grid burns it monthly, see UpdatePowerGrid(). */
+		CargoType fuel = GetPowerPlantFuelCargo(i);
+
 		for (auto ita = std::begin(i->accepted); ita != std::end(i->accepted); ++ita) {
 			if (ita->waiting == 0 || !IsValidCargoType(ita->cargo)) continue;
+			if (ita->cargo == fuel) continue;
 
 			for (auto itp = std::begin(i->produced); itp != std::end(i->produced); ++itp) {
 				if (!IsValidCargoType(itp->cargo)) continue;

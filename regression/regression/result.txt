@@ -10421,11 +10421,11 @@ ERROR: IsEnd() is invalid as Begin() is never called
     6 => 1088
     20 => 922
   IsWithinTownInfluence(15508) ListDump:
+    24 => 1
     0 => 1
     27 => 0
     26 => 0
     25 => 0
-    24 => 0
     23 => 0
     22 => 0
     21 => 0
@@ -10938,7 +10938,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
   GetCosts():           9628
   LevelTiles():         true
   LevelTiles():         true
-  GetCosts():           288029
+  GetCosts():           288179
   LowerTile():          false
   RaiseTile():          true
   RaiseTile():          false
@@ -10947,7 +10947,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
   RaiseTile():          true
   LowerTile():          true
   LowerTile():          false
-  GetCosts():           1167
+  GetCosts():           1317
   RaiseTile():          false
   LowerTile():          true
   LowerTile():          false

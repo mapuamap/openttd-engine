@@ -19,5 +19,7 @@ add_test_files(
     test_script_admin.cpp
     test_window_desc.cpp
     tilearea.cpp
+    town_growth.cpp
+    town_power.cpp
     utf8.cpp
 )

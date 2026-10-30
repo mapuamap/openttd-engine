@@ -128,6 +128,36 @@ public:
 	};
 
 	/**
+	 * Supplies a town needs to grow.
+	 * Each need has a level from 0 to 5 derived from the coverage of its monthly norm; the levels set the growth multiplier.
+	 */
+	enum TownNeed {
+		/* Note: these values represent part of the in-game TownNeed enum */
+		NEED_PASSENGERS = to_underlying(::TownNeed::Passengers), ///< Share of the generated passengers that is transported.
+		NEED_MAIL = to_underlying(::TownNeed::Mail), ///< Share of the generated mail that is transported.
+		NEED_GOODS = to_underlying(::TownNeed::Goods), ///< Goods delivered to the town.
+		NEED_ELECTRICITY = to_underlying(::TownNeed::Electricity), ///< Electricity received from the power plants linked to the town.
+
+		/* Custom added value, only valid for this API */
+		NEED_INVALID = -1, ///< An invalid need, or no need.
+	};
+
+	/**
+	 * Why a town is or is not growing.
+	 */
+	enum TownGrowthStatus {
+		/* Note: these values represent part of the in-game TownGrowthStatus enum */
+		GROWTH_STATUS_GROWING = to_underlying(::TownGrowthStatus::Growing), ///< The growth budget accumulates and is spent on new houses.
+		GROWTH_STATUS_BLOCKED = to_underlying(::TownGrowthStatus::Blocked), ///< An unlocked need is at level 0, see GetGrowthBlockingNeed().
+		GROWTH_STATUS_NO_SPACE = to_underlying(::TownGrowthStatus::NoSpace), ///< The town found no place to grow.
+		GROWTH_STATUS_DISABLED = to_underlying(::TownGrowthStatus::Disabled), ///< Town growth is switched off in the settings.
+		GROWTH_STATUS_CUSTOM = to_underlying(::TownGrowthStatus::Custom), ///< Growth is controlled by a game script.
+
+		/* Custom added value, only valid for this API */
+		GROWTH_STATUS_INVALID = -1, ///< The status for invalid towns.
+	};
+
+	/**
 	 * Gets the number of towns.
 	 * @return The number of towns.
 	 */
@@ -483,6 +513,165 @@ public:
 	 * @return The RoadLayout for the town.
 	 */
 	static RoadLayout GetRoadLayout(TownID town_id);
+
+	/**
+	 * Check whether a need is a valid need.
+	 * @param need The need to check.
+	 * @return True if and only if the need is valid.
+	 */
+	static bool IsValidNeed(TownNeed need);
+
+	/**
+	 * Get the level of a need of a town as it counts for growth.
+	 * This is the level from the supply after the rules for locked needs and small towns are applied, or the forced level.
+	 * @param town_id The town to get the level for.
+	 * @param need The need to get the level of.
+	 * @pre IsValidTown(town_id).
+	 * @pre IsValidNeed(need).
+	 * @return The level, 0 (not supplied, blocks growth) to 5 (fully supplied); 3 neither speeds up nor slows down growth.
+	 */
+	static SQInteger GetNeedLevel(TownID town_id, TownNeed need);
+
+	/**
+	 * Get the level of a need of a town from its supply alone.
+	 * Unlike GetNeedLevel() this ignores whether the need is unlocked, the rule for small towns and a forced level.
+	 * @param town_id The town to get the level for.
+	 * @param need The need to get the level of.
+	 * @pre IsValidTown(town_id).
+	 * @pre IsValidNeed(need).
+	 * @return The level from the supply, 0 to 5.
+	 */
+	static SQInteger GetNeedRawLevel(TownID town_id, TownNeed need);
+
+	/**
+	 * Get the forced level of a need of a town.
+	 * @param town_id The town to get the forced level for.
+	 * @param need The need to get the forced level of.
+	 * @pre IsValidTown(town_id).
+	 * @pre IsValidNeed(need).
+	 * @return The forced level 0 to 5, or -1 when the level follows the supply.
+	 * @see SetNeedLevelOverride
+	 */
+	static SQInteger GetNeedLevelOverride(TownID town_id, TownNeed need);
+
+	/**
+	 * Get how well a need of a town is covered by its supply.
+	 * @param town_id The town to get the coverage for.
+	 * @param need The need to get the coverage of.
+	 * @pre IsValidTown(town_id).
+	 * @pre IsValidNeed(need).
+	 * @return The coverage in percent, smoothed over the last economy-months; it can exceed 100.
+	 * @see \ref ScriptEconomyTime
+	 */
+	static SQInteger GetNeedCoverage(TownID town_id, TownNeed need);
+
+	/**
+	 * Get the amount supplied to a need of a town last economy-month.
+	 * @param town_id The town to get the supply for.
+	 * @param need The need to get the supply of.
+	 * @pre IsValidTown(town_id).
+	 * @pre IsValidNeed(need).
+	 * @return The amount supplied: transported passengers or mail, delivered goods, or received electricity units.
+	 * @see \ref ScriptEconomyTime
+	 */
+	static SQInteger GetNeedSupplied(TownID town_id, TownNeed need);
+
+	/**
+	 * Get the amount a need of a town required last economy-month to be fully covered.
+	 * @param town_id The town to get the demand for.
+	 * @param need The need to get the demand of.
+	 * @pre IsValidTown(town_id).
+	 * @pre IsValidNeed(need).
+	 * @return The amount for a coverage of 100%, in the units of GetNeedSupplied().
+	 * @see \ref ScriptEconomyTime
+	 */
+	static SQInteger GetNeedDemand(TownID town_id, TownNeed need);
+
+	/**
+	 * Check whether a need of a town is unlocked, i.e. the town is large enough for the need to matter.
+	 * A locked need counts as at least level 3, so it can only speed up growth.
+	 * @param town_id The town to check.
+	 * @param need The need to check.
+	 * @pre IsValidTown(town_id).
+	 * @pre IsValidNeed(need).
+	 * @return True if and only if the need is unlocked.
+	 */
+	static bool IsNeedUnlocked(TownID town_id, TownNeed need);
+
+	/**
+	 * Get the combined growth multiplier of all needs of a town.
+	 * @param town_id The town to get the multiplier for.
+	 * @pre IsValidTown(town_id).
+	 * @return The product of the multipliers of the need levels, per mille (1000 = normal growth, 0 = no growth).
+	 */
+	static SQInteger GetGrowthMultiplier(TownID town_id);
+
+	/**
+	 * Get the expected growth of a town in one economy-year at its current growth multiplier.
+	 * @param town_id The town to get the growth for.
+	 * @pre IsValidTown(town_id).
+	 * @return The expected growth in residents per economy-year.
+	 * @see \ref ScriptEconomyTime
+	 */
+	static SQInteger GetYearlyGrowth(TownID town_id);
+
+	/**
+	 * Get the growth budget of a town: the residents it may still add by building houses.
+	 * @param town_id The town to get the budget for.
+	 * @pre IsValidTown(town_id).
+	 * @return The budget in residents; it can be negative right after the town built a house.
+	 */
+	static SQInteger GetGrowthBudget(TownID town_id);
+
+	/**
+	 * Get why a town is or is not growing.
+	 * @param town_id The town to get the status for.
+	 * @pre IsValidTown(town_id).
+	 * @return The growth status.
+	 */
+	static TownGrowthStatus GetGrowthStatus(TownID town_id);
+
+	/**
+	 * Get the need that blocks the growth of a town.
+	 * @param town_id The town to check.
+	 * @pre IsValidTown(town_id).
+	 * @return The need at level 0, or NEED_INVALID when the status is not GROWTH_STATUS_BLOCKED.
+	 */
+	static TownNeed GetGrowthBlockingNeed(TownID town_id);
+
+	/**
+	 * Get the number of power plants a town gets its electricity from.
+	 * @param town_id The town to get the number of power plants of.
+	 * @pre IsValidTown(town_id).
+	 * @return The number of linked power plants.
+	 */
+	static SQInteger GetPowerPlantCount(TownID town_id);
+
+	/**
+	 * Get a power plant a town gets its electricity from.
+	 * @param town_id The town to get the power plant of.
+	 * @param index The index of the power plant, nearest first.
+	 * @pre IsValidTown(town_id).
+	 * @pre index >= 0 && index < GetPowerPlantCount(town_id).
+	 * @return The IndustryID of the power plant.
+	 */
+	static IndustryID GetPowerPlant(TownID town_id, SQInteger index);
+
+	/**
+	 * Force the level of a need of a town, or let it follow the supply again.
+	 * A forced level replaces the level from the supply and all rules for locked needs and small towns.
+	 * @param town_id The town to change.
+	 * @param need The need to force.
+	 * @param level The level 0 to 5, or -1 to let the level follow the supply again.
+	 * @pre IsValidTown(town_id).
+	 * @pre IsValidNeed(need).
+	 * @pre level >= -1 && level <= 5.
+	 * @pre ScriptCompanyMode::IsDeity().
+	 * @return True if the action succeeded.
+	 * @note The growth multiplier is updated with the next monthly evaluation of the needs.
+	 * @api -ai
+	 */
+	static bool SetNeedLevelOverride(TownID town_id, TownNeed need, SQInteger level);
 };
 
 #endif /* SCRIPT_TOWN_HPP */

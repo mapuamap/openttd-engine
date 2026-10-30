@@ -23,6 +23,28 @@
  * \li GSRail::RemoveRailDepot
  * \li GSDepot
  * \li GSError::ERR_CAT_DEPOT
+ * \li GSTown::TownNeed
+ * \li GSTown::TownGrowthStatus
+ * \li GSTown::IsValidNeed
+ * \li GSTown::GetNeedLevel
+ * \li GSTown::GetNeedRawLevel
+ * \li GSTown::GetNeedLevelOverride
+ * \li GSTown::GetNeedCoverage
+ * \li GSTown::GetNeedSupplied
+ * \li GSTown::GetNeedDemand
+ * \li GSTown::IsNeedUnlocked
+ * \li GSTown::GetGrowthMultiplier
+ * \li GSTown::GetYearlyGrowth
+ * \li GSTown::GetGrowthBudget
+ * \li GSTown::GetGrowthStatus
+ * \li GSTown::GetGrowthBlockingNeed
+ * \li GSTown::GetPowerPlantCount
+ * \li GSTown::GetPowerPlant
+ * \li GSTown::SetNeedLevelOverride
+ * \li GSIndustry::IsPowerPlant
+ * \li GSIndustry::GetPowerPlantFuelStock
+ * \li GSIndustry::GetPowerOutput
+ * \li GSIndustry::GetPowerDemand
  *
  * Other changes:
  * \li GSTown::ExpandTown Change to town expansion to match expected behaviour with the 'allow_town_roads' setting

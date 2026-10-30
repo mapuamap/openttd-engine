@@ -17,6 +17,7 @@
 #include "subsidy_type.h"
 #include "newgrf_storage.h"
 #include "cargo_type.h"
+#include "town_growth_type.h"
 
 template <typename T>
 struct BuildingCounts {
@@ -197,6 +198,7 @@ struct Town : TownPool::PoolItem<&_town_pool> {
 	uint8_t road_build_months = 0; ///< fund road reconstruction in action?
 
 	bool larger_town = false; ///< if this is a larger town and should grow more quickly
+	TownGrowthState growth{}; ///< supply-driven growth: needs, budget and power links
 	TownLayout layout{}; ///< town specific road layout
 
 	bool show_zone = false; ///< NOSAVE: mark town to show the local authority zone in the viewports

@@ -206,6 +206,8 @@ static const SaveLoad _industry_desc[] = {
 	SaveLoad::String("text", SLE_OBJECT_ADDRESS(Industry, text), StringValidationSetting::AllowControlCode, SaveLoadVersion::IndustryText),
 
 	SaveLoad::Variable<VarFileType::U64>("valid_history", SLE_OBJECT_ADDRESS(Industry, valid_history), SaveLoadVersion::IndustryNumValidHistory),
+	SaveLoad::Variable<VarFileType::U32>("power_output", SLE_OBJECT_ADDRESS(Industry, power_output), SaveLoadVersion::TownNeedsGrowth),
+	SaveLoad::Variable<VarFileType::U32>("power_demand", SLE_OBJECT_ADDRESS(Industry, power_demand), SaveLoadVersion::TownNeedsGrowth),
 
 	SaveLoad::StructList<SlIndustryAccepted>("accepted", SaveLoadVersion::IndustryCargoReorganise),
 	SaveLoad::StructList<SlIndustryProduced>("produced", SaveLoadVersion::IndustryCargoReorganise),

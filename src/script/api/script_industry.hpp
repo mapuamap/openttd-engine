@@ -356,6 +356,45 @@ public:
 	 * @api -ai
 	 */
 	static bool SetProductionLevel(IndustryID industry_id, SQInteger prod_level, bool show_news, Text *custom_news);
+
+	/**
+	 * Check whether an industry is a power plant: it burns fuel (coal) to supply electricity to the towns linked to it.
+	 * @param industry_id The index of the industry.
+	 * @pre IsValidIndustry(industry_id).
+	 * @return True if and only if the industry is a power plant.
+	 */
+	static bool IsPowerPlant(IndustryID industry_id);
+
+	/**
+	 * Get the fuel a power plant has in stock.
+	 * Delivered fuel is kept in stock until linked towns need electricity; one unit of fuel gives one unit of electricity.
+	 * @param industry_id The index of the industry.
+	 * @pre IsValidIndustry(industry_id).
+	 * @pre IsPowerPlant(industry_id).
+	 * @return The amount of fuel in stock, or -1 when the industry is not a power plant.
+	 */
+	static SQInteger GetPowerPlantFuelStock(IndustryID industry_id);
+
+	/**
+	 * Get the electricity a power plant delivered to its linked towns last economy-month.
+	 * @param industry_id The index of the industry.
+	 * @pre IsValidIndustry(industry_id).
+	 * @pre IsPowerPlant(industry_id).
+	 * @return The electricity delivered, or -1 when the industry is not a power plant.
+	 * @see \ref ScriptEconomyTime
+	 */
+	static SQInteger GetPowerOutput(IndustryID industry_id);
+
+	/**
+	 * Get the electricity the towns linked to a power plant asked from it last economy-month.
+	 * When this exceeds GetPowerOutput() the power plant lacks fuel.
+	 * @param industry_id The index of the industry.
+	 * @pre IsValidIndustry(industry_id).
+	 * @pre IsPowerPlant(industry_id).
+	 * @return The electricity demand, or -1 when the industry is not a power plant.
+	 * @see \ref ScriptEconomyTime
+	 */
+	static SQInteger GetPowerDemand(IndustryID industry_id);
 };
 
 #endif /* SCRIPT_INDUSTRY_HPP */

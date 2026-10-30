@@ -545,7 +545,16 @@ add_files(
     toolbar_gui.cpp
     toolbar_gui.h
     town.h
+    town_blocks.cpp
+    town_blocks.h
     town_cmd.cpp
+    town_growth.cpp
+    town_growth.h
+    town_growth_internal.h
+    town_growth_cmd.cpp
+    town_growth_type.h
+    town_power.cpp
+    town_power.h
     town_cmd.h
     town_gui.cpp
     town_kdtree.h

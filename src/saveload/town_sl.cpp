@@ -16,6 +16,7 @@
 #include "newgrf_sl.h"
 #include "../newgrf_house.h"
 #include "../town.h"
+#include "../town_growth.h"
 #include "../landscape.h"
 #include "../strings_func.h"
 
@@ -41,7 +42,7 @@ void RebuildTownCaches()
 		HouseID house_id = GetHouseType(t);
 		Town *town = Town::GetByTile(t);
 		IncreaseBuildingCount(town, house_id);
-		if (IsHouseCompleted(t)) town->cache.population += HouseSpec::Get(house_id)->population;
+		if (IsHouseCompleted(t)) town->cache.population += ScaleHousePopulation(HouseSpec::Get(house_id)->population);
 
 		/* Increase the number of houses for every house, but only once. */
 		if (GetHouseNorthPart(house_id) == TileDiffXY(0, 0)) town->cache.num_houses++;
@@ -291,6 +292,52 @@ public:
 	}
 };
 
+/** Saveload handler for the needs of a town (supply-driven growth). */
+class SlTownNeeds : public DefaultSaveLoadHandler<SlTownNeeds, Town> {
+public:
+	/** Saveload description for handler. */
+	static inline const SaveLoad description[] = {
+		SaveLoad::Variable<VarFileType::U32>("supplied", SLE_OBJECT_ADDRESS(TownNeedState, supplied)),
+		SaveLoad::Variable<VarFileType::U32>("demand", SLE_OBJECT_ADDRESS(TownNeedState, demand)),
+		SaveLoad::Array<VarFileType::U16, 3>("coverage_history", SLE_OBJECT_ADDRESS(TownNeedState, coverage_history)),
+		SaveLoad::Variable<VarFileType::U16>("coverage", SLE_OBJECT_ADDRESS(TownNeedState, coverage)),
+		SaveLoad::Variable<VarFileType::U8>("level", SLE_OBJECT_ADDRESS(TownNeedState, level)),
+		SaveLoad::Variable<VarFileType::U8>("forced", SLE_OBJECT_ADDRESS(TownNeedState, forced)),
+	};
+	/** Compatibility saveload description for handler. */
+	static inline const SaveLoadCompatTable compat_description = {};
+
+	void Save(Town *t) const override
+	{
+		SlSetStructListLength(std::size(t->growth.needs));
+		for (auto &need : t->growth.needs) {
+			SlObject(&need, this->GetDescription());
+		}
+	}
+
+	void Load(Town *t) const override
+	{
+		size_t length = SlGetStructListLength(to_underlying(TownNeed::End));
+		for (size_t i = 0; i < length; i++) {
+			SlObject(&t->growth.needs[static_cast<TownNeed>(i)], this->GetLoadDescription());
+		}
+	}
+};
+
+/** Saveload handler for the power plants linked to a town. */
+class SlTownPowerLinks : public VectorSaveLoadHandler<SlTownPowerLinks, Town, TownPowerLink> {
+public:
+	/** Saveload description for handler. */
+	static inline const SaveLoad description[] = {
+		SaveLoad::Variable<VarFileType::U16>("plant", SLE_OBJECT_ADDRESS(TownPowerLink, plant)),
+		SaveLoad::Variable<VarFileType::U32>("delivered", SLE_OBJECT_ADDRESS(TownPowerLink, delivered)),
+	};
+	/** Compatibility saveload description for handler. */
+	inline const static SaveLoadCompatTable compat_description = {};
+
+	std::vector<TownPowerLink> &GetVector(Town *t) const override { return t->growth.power_links; }
+};
+
 static std::array<Town::SuppliedHistory, 2> _old_pass_supplied{};
 static std::array<Town::SuppliedHistory, 2> _old_mail_supplied{};
 
@@ -366,6 +413,16 @@ static const SaveLoad _town_desc[] = {
 	SaveLoad::StructList<SlTownAccepted>("accepted"),
 	SaveLoad::StructList<SlTownReceived>("received", SaveLoadVersion::ScriptTownGrowth),
 	SaveLoad::StructList<SlTownAcceptanceMatrix>("acceptance_matrix", SaveLoadVersion::InfrastructureMaintenanceCosts, SaveLoadVersion::RemoveTownCargoCache),
+
+	SaveLoad::Variable<VarFileType::I64>("growth_budget", SLE_OBJECT_ADDRESS(Town, growth.budget), SaveLoadVersion::TownNeedsGrowth),
+	SaveLoad::Variable<VarFileType::U32>("growth_multiplier", SLE_OBJECT_ADDRESS(Town, growth.multiplier), SaveLoadVersion::TownNeedsGrowth),
+	SaveLoad::Variable<VarFileType::U32>("growth_yearly", SLE_OBJECT_ADDRESS(Town, growth.yearly_growth), SaveLoadVersion::TownNeedsGrowth),
+	SaveLoad::Variable<VarFileType::U8>("growth_status", SLE_OBJECT_ADDRESS(Town, growth.status), SaveLoadVersion::TownNeedsGrowth),
+	SaveLoad::Variable<VarFileType::U8>("growth_blocking_need", SLE_OBJECT_ADDRESS(Town, growth.blocking_need), SaveLoadVersion::TownNeedsGrowth),
+	SaveLoad::Variable<VarFileType::U16>("growth_retry_ticks", SLE_OBJECT_ADDRESS(Town, growth.retry_ticks), SaveLoadVersion::TownNeedsGrowth),
+	SaveLoad::Variable<VarFileType::U8>("growth_builder_failures", SLE_OBJECT_ADDRESS(Town, growth.builder_failures), SaveLoadVersion::TownNeedsGrowth),
+	SaveLoad::StructList<SlTownNeeds>("needs", SaveLoadVersion::TownNeedsGrowth),
+	SaveLoad::StructList<SlTownPowerLinks>("power_links", SaveLoadVersion::TownNeedsGrowth),
 };
 
 struct HIDSChunkHandler : NewGRFMappingChunkHandler {

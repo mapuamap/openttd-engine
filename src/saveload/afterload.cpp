@@ -568,6 +568,9 @@ bool AfterLoadGame()
 	_gamelog.TestRevision();
 	_gamelog.TestMode();
 
+	/* Savegames from before supply-driven town growth count one resident per point of house population. */
+	if (IsSavegameVersionBefore(SaveLoadVersion::TownNeedsGrowth)) _settings_game.economy.town_density = 1;
+
 	RebuildTownKdtree();
 	RebuildStationKdtree();
 	/* This needs to be done even before conversion, because some conversions will destroy objects

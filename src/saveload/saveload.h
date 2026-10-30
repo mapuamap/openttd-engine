@@ -425,6 +425,8 @@ enum class SaveLoadVersion : uint16_t {
 	LabelOrientationUnification, ///< Saveload version: 367, GitHub pull request: 15888\n Unify the orientation in which labels are written.
 	DoubleEndedShips, ///< Saveload version: 368, GitHub pull request: 16002\n Double-ended (NewGRF-only) ships can reverse without turning.
 
+	TownNeedsGrowth, ///< Fork mapuamap/openttd-engine: supply-driven town growth (needs, growth budget, power links).
+
 	MaxVersion, ///< Highest possible saveload version.
 };
 

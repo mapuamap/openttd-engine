@@ -55,6 +55,7 @@ static EnumIndexArray<std::string_view, Facility, Facility::End> _debug_faciliti
 	"desync", // Facility::Desync
 	"console", // Facility::Console
 	"random", // Facility::Random
+	"town", // Facility::Town
 };
 
 /**

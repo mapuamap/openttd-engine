@@ -20,6 +20,7 @@
 #include "viewport_func.h"
 #include "command_func.h"
 #include "town.h"
+#include "town_growth.h"
 #include "news_func.h"
 #include "cheat_type.h"
 #include "company_base.h"
@@ -192,6 +193,9 @@ Industry::~Industry()
 
 	/* don't let any disaster vehicle target invalid industry */
 	ReleaseDisastersTargetingIndustry(this->index);
+
+	/* Towns must not stay linked to a removed power plant. */
+	OnPowerPlantRemoved(this->index);
 
 	/* Clear the persistent storage. */
 	delete this->psa;

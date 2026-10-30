@@ -46,6 +46,18 @@ enum TownViewWidgets : WidgetID {
 	WID_TV_EXPAND_ROADS, ///< Expand roads of this town (scenario editor only).
 	WID_TV_DELETE,         ///< Delete this town (scenario editor only).
 	WID_TV_GRAPH,
+	WID_TV_SUPPLY,         ///< Show the town supply window.
+};
+
+/** Widgets of the #TownSupplyWindow class. */
+enum TownSupplyWidgets : WidgetID {
+	WID_TS_CAPTION,          ///< Caption of the window.
+	WID_TS_CENTER_VIEW,      ///< Centre the main view on the town.
+	WID_TS_SUMMARY,          ///< Population, growth and growth budget.
+	WID_TS_NEEDS,            ///< Supply state of every need.
+	WID_TS_HINT,             ///< What to improve first.
+	WID_TS_PLANTS,           ///< List of linked power plants.
+	WID_TS_PLANTS_SCROLLBAR, ///< Scrollbar of the power plant list.
 };
 
 /** Widgets of the #FoundTownWindow class. */

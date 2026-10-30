@@ -826,11 +826,16 @@ SettingsContainer &GetSettingsTree()
 			{
 				towns->Add(new SettingEntry("economy.town_cargo_scale"));
 				towns->Add(new SettingEntry("economy.town_growth_rate"));
+				towns->Add(new SettingEntry("economy.town_growth_base"));
+				towns->Add(new SettingEntry("economy.town_density"));
+				towns->Add(new SettingEntry("economy.town_need_transport_pct"));
+				towns->Add(new SettingEntry("economy.town_need_goods_residents"));
+				towns->Add(new SettingEntry("economy.town_need_power_residents"));
+				towns->Add(new SettingEntry("economy.town_power_link_radius"));
 				towns->Add(new SettingEntry("economy.allow_town_roads"));
 				towns->Add(new SettingEntry("economy.allow_town_level_crossings"));
 				towns->Add(new SettingEntry("economy.found_town"));
 				towns->Add(new SettingEntry("economy.place_houses"));
-				towns->Add(new SettingEntry("economy.town_layout"));
 				towns->Add(new SettingEntry("economy.larger_towns"));
 				towns->Add(new SettingEntry("economy.initial_city_size"));
 				towns->Add(new SettingEntry("economy.town_min_distance"));

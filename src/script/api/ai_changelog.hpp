@@ -23,6 +23,27 @@
  * \li AIRail::RemoveRailDepot
  * \li AIDepot
  * \li AIError::ERR_CAT_DEPOT
+ * \li AITown::TownNeed
+ * \li AITown::TownGrowthStatus
+ * \li AITown::IsValidNeed
+ * \li AITown::GetNeedLevel
+ * \li AITown::GetNeedRawLevel
+ * \li AITown::GetNeedLevelOverride
+ * \li AITown::GetNeedCoverage
+ * \li AITown::GetNeedSupplied
+ * \li AITown::GetNeedDemand
+ * \li AITown::IsNeedUnlocked
+ * \li AITown::GetGrowthMultiplier
+ * \li AITown::GetYearlyGrowth
+ * \li AITown::GetGrowthBudget
+ * \li AITown::GetGrowthStatus
+ * \li AITown::GetGrowthBlockingNeed
+ * \li AITown::GetPowerPlantCount
+ * \li AITown::GetPowerPlant
+ * \li AIIndustry::IsPowerPlant
+ * \li AIIndustry::GetPowerPlantFuelStock
+ * \li AIIndustry::GetPowerOutput
+ * \li AIIndustry::GetPowerDemand
  *
  * \b 15.0
  *

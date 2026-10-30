@@ -646,6 +646,12 @@ struct EconomySettings {
 	TimekeepingUnits timekeeping_units; ///< time units to use for the game economy, either calendar or wallclock
 	uint16_t minutes_per_calendar_year; ///< minutes per calendar year. Special value 0 means that calendar time is frozen.
 	uint16_t town_cargo_scale; ///< scale cargo production of towns by this percentage.
+	uint8_t town_density; ///< residents per point of house population
+	uint16_t town_growth_base; ///< base town growth constant, in thousandths
+	uint8_t town_need_transport_pct; ///< share of generated passengers and mail to transport for full coverage
+	uint16_t town_need_goods_residents; ///< residents per unit of goods needed per month
+	uint16_t town_need_power_residents; ///< residents per unit of electricity needed per month
+	uint16_t town_power_link_radius; ///< maximum distance in tiles from a town to a linked power plant
 	uint16_t industry_cargo_scale; ///< scale cargo production of industries by this percentage.
 	uint8_t cargo_aging_rate; ///< scale the delivery time factor of cargo delivery payments by this percentage.
 	uint16_t town_min_distance; ///< minimum distance between towns.

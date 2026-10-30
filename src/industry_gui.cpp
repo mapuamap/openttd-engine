@@ -49,6 +49,7 @@
 #include "timer/timer_window.h"
 #include "hotkeys.h"
 #include "core/string_consumer.hpp"
+#include "town_growth.h"
 
 #include "widgets/industry_widget.h"
 
@@ -83,6 +84,7 @@ struct CargoSuffix {
 };
 
 extern void GenerateIndustries();
+void ShowTownSupplyWindow(TownID town);
 static void ShowIndustryCargoesWindow(IndustryType id);
 
 /**
@@ -804,6 +806,8 @@ class IndustryViewWindow : public Window
 	int production_offset_y = 0; ///< The offset of the production texts/buttons
 	int info_height = 0; ///< Height needed for the #WID_IV_INFO panel
 	int cheat_line_height = 0; ///< Height of each line for the #WID_IV_INFO panel
+	std::vector<std::pair<TownID, uint32_t>> power_towns{}; ///< Power plants: towns supplied last month and the electricity they got, as drawn.
+	int power_towns_offset_y = 0; ///< The offset of the first town line of a power plant.
 
 public:
 	IndustryViewWindow(WindowDesc &desc, WindowNumber window_number) : Window(desc)
@@ -868,6 +872,67 @@ public:
 			case CargoSuffixDisplay::None: return GetStringWithArgs(STR_INDUSTRY_VIEW_ACCEPT_CARGO_NOSUFFIX, params);
 			default: NOT_REACHED();
 		}
+	}
+
+	/**
+	 * Draw the electricity information of a power plant: coal stock, output, and the towns it supplies.
+	 * @param r Rectangle to draw in; its bottom is ignored.
+	 * @param i The power plant.
+	 * @return Top of the space below the drawn lines.
+	 */
+	int DrawPowerPlantInfo(Rect r, const Industry *i)
+	{
+		bool rtl = _current_text_dir == TD_RTL;
+		const int line_height = GetCharacterHeight(FontSize::Normal);
+
+		CargoType fuel = GetPowerPlantFuelCargo(i);
+		if (IsValidCargoType(fuel)) {
+			DrawString(r, GetString(STR_INDUSTRY_VIEW_POWER_COAL_STOCK, fuel, GetPowerPlantFuelStock(i)));
+			r.top += line_height;
+		}
+		DrawString(r, GetString(STR_INDUSTRY_VIEW_POWER_OUTPUT, i->power_output));
+		r.top += line_height;
+		DrawString(r, GetString(STR_INDUSTRY_VIEW_POWER_DEMAND, i->power_demand));
+		r.top += line_height;
+
+		/* Find the towns linked to this plant; the town with the most electricity first. */
+		this->power_towns.clear();
+		for (const Town *t : Town::Iterate()) {
+			for (const TownPowerLink &link : t->growth.power_links) {
+				if (link.plant == i->index) this->power_towns.emplace_back(t->index, link.delivered);
+			}
+		}
+		std::ranges::sort(this->power_towns, [](const auto &a, const auto &b) {
+			if (a.second != b.second) return a.second > b.second;
+			return a.first < b.first;
+		});
+
+		if (this->power_towns.empty()) {
+			DrawString(r, STR_INDUSTRY_VIEW_POWER_NO_TOWNS);
+			return r.top + line_height;
+		}
+
+		DrawString(r, STR_INDUSTRY_VIEW_POWER_TOWNS);
+		r.top += line_height;
+		this->power_towns_offset_y = r.top;
+		for (const auto &[town, delivered] : this->power_towns) {
+			DrawString(r.Indent(WidgetDimensions::scaled.hsep_indent, rtl), GetString(STR_INDUSTRY_VIEW_POWER_TOWN, town, delivered));
+			r.top += line_height;
+		}
+		return r.top;
+	}
+
+	/**
+	 * Get the town of a power plant town line in the #WID_IV_INFO panel.
+	 * @param y Window-relative vertical position.
+	 * @return The town at that line, or \c nullptr if there is none.
+	 */
+	const Town *GetPowerTownAt(int y) const
+	{
+		if (this->power_towns.empty() || y < this->power_towns_offset_y) return nullptr;
+		size_t row = (y - this->power_towns_offset_y) / GetCharacterHeight(FontSize::Normal);
+		if (row >= this->power_towns.size()) return nullptr;
+		return Town::GetIfValid(this->power_towns[row].first);
 	}
 
 	/**
@@ -959,6 +1024,12 @@ public:
 			ir.top += line_height;
 		}
 
+		this->power_towns.clear();
+		if (IsPowerPlant(i)) {
+			ir.top += WidgetDimensions::scaled.vsep_wide;
+			ir.top = this->DrawPowerPlantInfo(ir, i);
+		}
+
 		/* Get the extra message for the GUI */
 		if (ind->callback_mask.Test(IndustryCallbackMask::WindowMoreText)) {
 			std::array<int32_t, 16> regs100;
@@ -1004,6 +1075,15 @@ public:
 	{
 		switch (widget) {
 			case WID_IV_INFO: {
+				if (const Town *t = this->GetPowerTownAt(pt.y); t != nullptr) {
+					if (_ctrl_pressed) {
+						ShowTownSupplyWindow(t->index);
+					} else {
+						ScrollMainWindowToTile(t->xy);
+					}
+					return;
+				}
+
 				Industry *i = Industry::Get(this->window_number);
 				ClickedCargoLine line = CCL_NONE;
 
@@ -1170,6 +1250,20 @@ public:
 			this->editable = Editability::None;
 		}
 	}
+
+	bool OnTooltip(Point pt, WidgetID widget, TooltipCloseCondition close_cond) override
+	{
+		if (widget != WID_IV_INFO || this->GetPowerTownAt(pt.y) == nullptr) return false;
+
+		GuiShowTooltips(this, GetEncodedString(STR_INDUSTRY_VIEW_POWER_TOWN_TOOLTIP), close_cond);
+		return true;
+	}
+
+	/** Power plants: refresh regularly, as the electricity output and the linked towns change monthly without notice. */
+	const IntervalTimer<TimerWindow> power_refresh_interval = {std::chrono::seconds(2), [this](auto) {
+		const Industry *i = Industry::GetIfValid(this->window_number);
+		if (i != nullptr && IsPowerPlant(i)) this->SetDirty();
+	}};
 
 	bool IsNewGRFInspectable() const override
 	{

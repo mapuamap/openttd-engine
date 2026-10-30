@@ -350,6 +350,12 @@ enum class WindowClass : uint16_t {
 	TownView,
 
 	/**
+	 * Town supply and growth; %Window numbers:
+	 *   - #TownID = #TownSupplyWidgets
+	 */
+	TownSupply,
+
+	/**
 	 * Vehicle view; %Window numbers:
 	 *   - #VehicleID = #VehicleViewWidgets
 	 */

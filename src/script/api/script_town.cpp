@@ -18,6 +18,7 @@
 #include "../../station_base.h"
 #include "../../landscape.h"
 #include "../../town_cmd.h"
+#include "../../town_growth.h"
 
 #include "table/strings.h"
 
@@ -396,4 +397,124 @@
 	if (!IsValidTown(town_id)) return ROAD_LAYOUT_INVALID;
 
 	return (ScriptTown::RoadLayout)((TownLayout)::Town::Get(town_id)->layout);
+}
+
+/* static */ bool ScriptTown::IsValidNeed(TownNeed need)
+{
+	return need >= NEED_PASSENGERS && need <= NEED_ELECTRICITY;
+}
+
+/* static */ SQInteger ScriptTown::GetNeedLevel(TownID town_id, TownNeed need)
+{
+	if (!IsValidTown(town_id) || !IsValidNeed(need)) return -1;
+
+	return ::GetTownNeedEffectiveLevel(::Town::Get(town_id), static_cast<::TownNeed>(need));
+}
+
+/* static */ SQInteger ScriptTown::GetNeedRawLevel(TownID town_id, TownNeed need)
+{
+	if (!IsValidTown(town_id) || !IsValidNeed(need)) return -1;
+
+	return ::Town::Get(town_id)->growth.needs[static_cast<::TownNeed>(need)].level;
+}
+
+/* static */ SQInteger ScriptTown::GetNeedLevelOverride(TownID town_id, TownNeed need)
+{
+	if (!IsValidTown(town_id) || !IsValidNeed(need)) return -1;
+
+	uint8_t forced = ::Town::Get(town_id)->growth.needs[static_cast<::TownNeed>(need)].forced;
+	return forced == TOWN_NEED_NOT_FORCED ? -1 : forced;
+}
+
+/* static */ SQInteger ScriptTown::GetNeedCoverage(TownID town_id, TownNeed need)
+{
+	if (!IsValidTown(town_id) || !IsValidNeed(need)) return -1;
+
+	return ::Town::Get(town_id)->growth.needs[static_cast<::TownNeed>(need)].coverage;
+}
+
+/* static */ SQInteger ScriptTown::GetNeedSupplied(TownID town_id, TownNeed need)
+{
+	if (!IsValidTown(town_id) || !IsValidNeed(need)) return -1;
+
+	return ::Town::Get(town_id)->growth.needs[static_cast<::TownNeed>(need)].supplied;
+}
+
+/* static */ SQInteger ScriptTown::GetNeedDemand(TownID town_id, TownNeed need)
+{
+	if (!IsValidTown(town_id) || !IsValidNeed(need)) return -1;
+
+	return ::Town::Get(town_id)->growth.needs[static_cast<::TownNeed>(need)].demand;
+}
+
+/* static */ bool ScriptTown::IsNeedUnlocked(TownID town_id, TownNeed need)
+{
+	if (!IsValidTown(town_id) || !IsValidNeed(need)) return false;
+
+	return ::IsTownNeedUnlocked(::Town::Get(town_id), static_cast<::TownNeed>(need));
+}
+
+/* static */ SQInteger ScriptTown::GetGrowthMultiplier(TownID town_id)
+{
+	if (!IsValidTown(town_id)) return -1;
+
+	return ::Town::Get(town_id)->growth.multiplier;
+}
+
+/* static */ SQInteger ScriptTown::GetYearlyGrowth(TownID town_id)
+{
+	if (!IsValidTown(town_id)) return -1;
+
+	return ::Town::Get(town_id)->growth.yearly_growth;
+}
+
+/* static */ SQInteger ScriptTown::GetGrowthBudget(TownID town_id)
+{
+	if (!IsValidTown(town_id)) return 0;
+
+	/* The budget is kept in milli-residents. */
+	return ::Town::Get(town_id)->growth.budget / 1000;
+}
+
+/* static */ ScriptTown::TownGrowthStatus ScriptTown::GetGrowthStatus(TownID town_id)
+{
+	if (!IsValidTown(town_id)) return GROWTH_STATUS_INVALID;
+
+	return static_cast<TownGrowthStatus>(::Town::Get(town_id)->growth.status);
+}
+
+/* static */ ScriptTown::TownNeed ScriptTown::GetGrowthBlockingNeed(TownID town_id)
+{
+	if (!IsValidTown(town_id)) return NEED_INVALID;
+
+	const ::TownGrowthState &growth = ::Town::Get(town_id)->growth;
+	if (growth.status != ::TownGrowthStatus::Blocked || growth.blocking_need >= ::TownNeed::End) return NEED_INVALID;
+	return static_cast<TownNeed>(growth.blocking_need);
+}
+
+/* static */ SQInteger ScriptTown::GetPowerPlantCount(TownID town_id)
+{
+	if (!IsValidTown(town_id)) return -1;
+
+	return ::Town::Get(town_id)->growth.power_links.size();
+}
+
+/* static */ IndustryID ScriptTown::GetPowerPlant(TownID town_id, SQInteger index)
+{
+	if (!IsValidTown(town_id)) return IndustryID::Invalid();
+
+	const auto &links = ::Town::Get(town_id)->growth.power_links;
+	if (index < 0 || static_cast<size_t>(index) >= links.size()) return IndustryID::Invalid();
+	return links[index].plant;
+}
+
+/* static */ bool ScriptTown::SetNeedLevelOverride(TownID town_id, TownNeed need, SQInteger level)
+{
+	EnforceDeityMode(false);
+	EnforcePrecondition(false, IsValidTown(town_id));
+	EnforcePrecondition(false, IsValidNeed(need));
+	EnforcePrecondition(false, level >= -1 && level <= TOWN_NEED_LEVEL_MAX);
+
+	uint8_t forced = level < 0 ? TOWN_NEED_NOT_FORCED : static_cast<uint8_t>(level);
+	return ScriptObject::Command<Commands::TownForceNeedLevel>::Do(town_id, static_cast<::TownNeed>(need), forced);
 }

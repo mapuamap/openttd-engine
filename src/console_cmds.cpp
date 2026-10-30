@@ -46,6 +46,10 @@
 #include "3rdparty/fmt/chrono.h"
 #include "company_cmd.h"
 #include "misc_cmd.h"
+#include "industry.h"
+#include "town.h"
+#include "town_cmd.h"
+#include "town_growth.h"
 
 #if defined(WITH_ZLIB)
 #include "network/network_content.h"
@@ -2037,6 +2041,259 @@ static bool ConCompanies(std::span<std::string_view> argv)
 	return true;
 }
 
+/* Supply-driven town growth: inspect needs and the power grid, force need levels, add fuel. */
+
+/**
+ * Get a short name of the growth status of a town for the console.
+ * @param t The town.
+ * @return The name of the status.
+ */
+static std::string GetTownGrowthStatusText(const Town *t)
+{
+	switch (t->growth.status) {
+		case TownGrowthStatus::Growing: return "growing";
+		case TownGrowthStatus::Blocked:
+			if (t->growth.blocking_need < TownNeed::End) return fmt::format("blocked:{}", GetString(GetTownNeedName(t->growth.blocking_need)));
+			return "blocked";
+		case TownGrowthStatus::NoSpace: return "no space";
+		case TownGrowthStatus::Disabled: return "disabled";
+		case TownGrowthStatus::Custom: return "custom (GS)";
+		default: return fmt::format("status {}", to_underlying(t->growth.status));
+	}
+}
+
+/**
+ * Format a value per mille as a decimal multiplier, e.g. 6554 as "6.554".
+ * @param per_mille The value per mille.
+ * @return The formatted value.
+ */
+static std::string FormatPerMille(uint32_t per_mille)
+{
+	return fmt::format("{}.{:03}", per_mille / 1000, per_mille % 1000);
+}
+
+/**
+ * Print the needs of one town in detail.
+ * @param t The town.
+ */
+static void PrintTownNeedsDetails(const Town *t)
+{
+	const TownGrowthState &g = t->growth;
+	IConsolePrint(CC_INFO, "Town {} '{}': population {}, houses {}, status {}",
+		t->index, GetString(STR_TOWN_NAME, t->index), t->cache.population, t->cache.num_houses, GetTownGrowthStatusText(t));
+	IConsolePrint(CC_INFO, "  multiplier x{}, growth {} residents/year, budget {} residents",
+		FormatPerMille(g.multiplier), g.yearly_growth, g.budget / 1000);
+	IConsolePrint(CC_INFO, "  {:<12} {:>8} {:>5} {:>4} {:>6} {:>9} {:>9} {:>9}  {}",
+		"need", "unlocked", "level", "raw", "forced", "coverage", "supplied", "demand", "coverage history");
+	for (TownNeed n : EnumRange(TownNeed::End)) {
+		const TownNeedState &s = g.needs[n];
+		IConsolePrint(CC_INFO, "  {:<12} {:>8} {:>5} {:>4} {:>6} {:>8}% {:>9} {:>9}  {}/{}/{}%",
+			GetString(GetTownNeedName(n)),
+			IsTownNeedUnlocked(t, n) ? "yes" : fmt::format("at {}", GetTownNeedUnlockPopulation(n)),
+			GetTownNeedEffectiveLevel(t, n), s.level,
+			s.forced == TOWN_NEED_NOT_FORCED ? std::string("-") : fmt::format("{}", s.forced),
+			s.coverage, s.supplied, s.demand,
+			s.coverage_history[0], s.coverage_history[1], s.coverage_history[2]);
+	}
+	if (g.power_links.empty()) {
+		IConsolePrint(CC_INFO, "  power plants: none linked");
+	} else {
+		for (const TownPowerLink &link : g.power_links) {
+			const Industry *i = Industry::GetIfValid(link.plant);
+			IConsolePrint(CC_INFO, "  power plant {} '{}': delivered {} last month", link.plant,
+				i == nullptr ? std::string("?") : GetString(STR_INDUSTRY_NAME, link.plant), link.delivered);
+		}
+	}
+}
+
+/** Show the needs and growth of towns. @copydoc IConsoleCmdProc */
+static bool ConTownNeeds(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Show the needs and growth of all towns, or the details of one town. Usage: 'town_needs [<town id>]'.");
+		IConsolePrint(CC_HELP, "Levels are shown as effective/raw; '*' marks a forced level, '-' a need the town is too small for.");
+		return true;
+	}
+
+	if (argv.size() > 2) return false;
+
+	if (argv.size() == 2) {
+		auto town_id = ParseType<TownID>(argv[1]);
+		if (!town_id.has_value() || !Town::IsValidID(*town_id)) {
+			IConsolePrint(CC_ERROR, "Unknown town '{}'.", argv[1]);
+			return true;
+		}
+		PrintTownNeedsDetails(Town::Get(*town_id));
+		return true;
+	}
+
+	std::vector<const Town *> towns;
+	for (const Town *t : Town::Iterate()) towns.push_back(t);
+	std::ranges::sort(towns, [](const Town *a, const Town *b) {
+		if (a->cache.population != b->cache.population) return a->cache.population > b->cache.population;
+		return a->index < b->index;
+	});
+
+	IConsolePrint(CC_INFO, "{:>5} {:>10} {:>5} {:>5} {:>5} {:>5} {:>16} {:>7} {:>8} {:>8}  {:<16} {}",
+		"id", "population", "pass", "mail", "goods", "elec", "coverage %", "mult", "growth/y", "budget", "status", "name");
+	for (const Town *t : towns) {
+		const TownGrowthState &g = t->growth;
+		std::array<std::string, to_underlying(TownNeed::End)> levels;
+		std::string coverage;
+		for (TownNeed n : EnumRange(TownNeed::End)) {
+			const TownNeedState &s = g.needs[n];
+			const char *mark = s.forced != TOWN_NEED_NOT_FORCED ? "*" : (IsTownNeedUnlocked(t, n) ? "" : "-");
+			levels[to_underlying(n)] = fmt::format("{}/{}{}", GetTownNeedEffectiveLevel(t, n), s.level, mark);
+			format_append(coverage, "{}{}", n == TownNeed::Begin ? "" : "/", s.coverage);
+		}
+		IConsolePrint(CC_INFO, "{:>5} {:>10} {:>5} {:>5} {:>5} {:>5} {:>16} {:>7} {:>8} {:>8}  {:<16} {}",
+			t->index, t->cache.population, levels[0], levels[1], levels[2], levels[3], coverage,
+			FormatPerMille(g.multiplier), g.yearly_growth, g.budget / 1000, GetTownGrowthStatusText(t),
+			GetString(STR_TOWN_NAME, t->index));
+	}
+	return true;
+}
+
+/** Force the level of town needs, or let them follow the supply again. @copydoc IConsoleCmdProc */
+static bool ConTownForceNeed(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Force the level of a town need, or let it follow the supply again. Usage: 'town_force_need <town id|all> <p|m|g|e|all> <0..5|auto>'.");
+		IConsolePrint(CC_HELP, "Needs: p = passengers, m = mail, g = goods, e = electricity. A forced level ignores the unlock and small town rules.");
+		return true;
+	}
+
+	if (argv.size() != 4) return false;
+
+	if (_game_mode == GameMode::Menu) {
+		IConsolePrint(CC_ERROR, "There is no game running.");
+		return true;
+	}
+
+	TownID town_id = TownID::Invalid();
+	if (argv[1] != "all") {
+		auto id = ParseType<TownID>(argv[1]);
+		if (!id.has_value() || !Town::IsValidID(*id)) {
+			IConsolePrint(CC_ERROR, "Unknown town '{}'.", argv[1]);
+			return true;
+		}
+		town_id = *id;
+	}
+
+	TownNeed need;
+	if (argv[2] == "p") {
+		need = TownNeed::Passengers;
+	} else if (argv[2] == "m") {
+		need = TownNeed::Mail;
+	} else if (argv[2] == "g") {
+		need = TownNeed::Goods;
+	} else if (argv[2] == "e") {
+		need = TownNeed::Electricity;
+	} else if (argv[2] == "all") {
+		need = TownNeed::End;
+	} else {
+		IConsolePrint(CC_ERROR, "Unknown need '{}', use p, m, g, e or all.", argv[2]);
+		return true;
+	}
+
+	uint8_t level = TOWN_NEED_NOT_FORCED;
+	if (argv[3] != "auto") {
+		auto value = ParseInteger(argv[3]);
+		if (!value.has_value() || *value > TOWN_NEED_LEVEL_MAX) {
+			IConsolePrint(CC_ERROR, "Level must be 0..{} or 'auto'.", TOWN_NEED_LEVEL_MAX);
+			return true;
+		}
+		level = static_cast<uint8_t>(*value);
+	}
+
+	if (!Command<Commands::TownForceNeedLevel>::Post(town_id, need, level)) {
+		IConsolePrint(CC_ERROR, "Forcing the need level failed.");
+	} else if (!_networking) {
+		IConsolePrint(CC_INFO, "Need level set; the growth multiplier follows at the next monthly update.");
+	}
+	return true;
+}
+
+/** List the power plants with their fuel stock, output and linked towns. @copydoc IConsoleCmdProc */
+static bool ConPowerGrid(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "List the power plants: fuel stock, electricity delivered and asked last month, linked towns. Usage: 'power_grid'.");
+		return true;
+	}
+
+	std::map<IndustryID, std::vector<TownID>> linked_towns;
+	for (const Town *t : Town::Iterate()) {
+		for (const TownPowerLink &link : t->growth.power_links) linked_towns[link.plant].push_back(t->index);
+	}
+
+	uint count = 0;
+	IConsolePrint(CC_INFO, "{:>5} {:>7} {:>7} {:>7}  {:<32} {}", "id", "fuel", "output", "demand", "name", "linked towns");
+	for (const Industry *i : Industry::Iterate()) {
+		if (!IsPowerPlant(i)) continue;
+		count++;
+
+		std::string towns;
+		for (TownID town : linked_towns[i->index]) format_append(towns, "{}{}", towns.empty() ? "" : ",", town);
+		IConsolePrint(CC_INFO, "{:>5} {:>7} {:>7} {:>7}  {:<32} {}", i->index, GetPowerPlantFuelStock(i), i->power_output, i->power_demand,
+			GetString(STR_INDUSTRY_NAME, i->index), towns.empty() ? std::string("-") : towns);
+	}
+	IConsolePrint(CC_INFO, "{} power plant(s).", count);
+	return true;
+}
+
+/** Add fuel to the stock of power plants. @copydoc IConsoleCmdProc */
+static bool ConPowerAddFuel(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Add fuel to the stock of a power plant, or of all of them. Usage: 'power_add_fuel <industry id|all> <amount>'.");
+		IConsolePrint(CC_HELP, "The stock is capped at {} units.", UINT16_MAX);
+		return true;
+	}
+
+	if (argv.size() != 3) return false;
+
+	if (_game_mode == GameMode::Menu) {
+		IConsolePrint(CC_ERROR, "There is no game running.");
+		return true;
+	}
+
+	IndustryID industry_id = IndustryID::Invalid();
+	if (argv[1] != "all") {
+		auto id = ParseType<IndustryID>(argv[1]);
+		const Industry *i = id.has_value() ? Industry::GetIfValid(*id) : nullptr;
+		if (i == nullptr || !IsPowerPlant(i)) {
+			IConsolePrint(CC_ERROR, "Industry '{}' is not a power plant.", argv[1]);
+			return true;
+		}
+		industry_id = *id;
+	}
+
+	auto amount = ParseInteger(argv[2], 10, true);
+	if (!amount.has_value() || *amount == 0) {
+		IConsolePrint(CC_ERROR, "Amount must be a positive number.");
+		return true;
+	}
+
+	if (!Command<Commands::PowerPlantAddFuel>::Post(industry_id, static_cast<uint16_t>(std::min<uint32_t>(*amount, UINT16_MAX)))) {
+		IConsolePrint(CC_ERROR, "Adding fuel failed.");
+	}
+	return true;
+}
+
+/** Write the simulation line of every town to the debug output now. @copydoc IConsoleCmdProc */
+static bool ConTownSimLog(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Write the machine readable [townsim] line of every town to the debug output now. Usage: 'townsim_log'.");
+		IConsolePrint(CC_HELP, "With 'debug_level town=1' these lines are also written at the start of every year.");
+		return true;
+	}
+
+	LogTownGrowthSimulation(true);
+	return true;
+}
+
 /** Say something to all clients in a network game. @copydoc IConsoleCmdProc */
 static bool ConSay(std::span<std::string_view> argv)
 {
@@ -2793,6 +3050,30 @@ static bool ConFramerateWindow(std::span<std::string_view> argv)
 	return true;
 }
 
+/* Supply-driven town growth: GUI debug command. */
+
+void ShowTownSupplyWindow(TownID town);
+
+/** Open the supply window of a town. @copydoc IConsoleCmdProc */
+static bool ConTownSupplyWindow(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Open the supply and growth window of a town. Usage: 'town_supply_window <town id>'.");
+		return true;
+	}
+
+	if (argv.size() != 2) return false;
+
+	auto town = ParseType<TownID>(argv[1]);
+	if (!town.has_value() || !Town::IsValidID(*town)) {
+		IConsolePrint(CC_ERROR, "Unknown town id '{}'.", argv[1]);
+		return true;
+	}
+
+	ShowTownSupplyWindow(*town);
+	return true;
+}
+
 /** List all road types and their configuration. */
 static void ConDumpRoadTypes()
 {
@@ -3031,6 +3312,12 @@ void IConsoleStdLibRegister()
 	IConsole::CmdRegister("companies",               ConCompanies);
 	IConsole::AliasRegister("players",               "companies");
 
+	IConsole::CmdRegister("town_needs",              ConTownNeeds);
+	IConsole::CmdRegister("town_force_need",         ConTownForceNeed,    ConHookServerOrNoNetwork);
+	IConsole::CmdRegister("power_grid",              ConPowerGrid);
+	IConsole::CmdRegister("power_add_fuel",          ConPowerAddFuel,     ConHookServerOrNoNetwork);
+	IConsole::CmdRegister("townsim_log",             ConTownSimLog);
+
 	/* networking functions */
 
 /* Content downloading is only available with ZLIB */
@@ -3094,6 +3381,9 @@ void IConsoleStdLibRegister()
 #endif
 	IConsole::CmdRegister("fps",                     ConFramerate);
 	IConsole::CmdRegister("fps_wnd",                 ConFramerateWindow);
+
+	/* Supply-driven town growth: GUI */
+	IConsole::CmdRegister("town_supply_window",      ConTownSupplyWindow);
 
 	/* NewGRF development stuff */
 	IConsole::CmdRegister("reload_newgrfs",          ConNewGRFReload,     ConHookNewGRFDeveloperTool);
