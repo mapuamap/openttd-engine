@@ -1111,6 +1111,9 @@ static Money DeliverGoods(int num_pieces, CargoType cargo_type, StationID dest, 
 	const CargoSpec *cs = CargoSpec::Get(cargo_type);
 	auto &received = st->town->received[cs->town_acceptance_effect];
 	received.new_act = ClampTo<uint16_t>(received.new_act + accepted_total);
+	if (IsValuablesCargo(cargo_type)) {
+		st->town->growth.valuables_received = ClampTo<uint32_t>(static_cast<uint64_t>(st->town->growth.valuables_received) + accepted_total);
+	}
 	if (accepted_total - accepted_ind > 0) {
 		/* Cargo not delivered to an industry must go to the town. */
 		st->town->GetOrCreateCargoAccepted(cargo_type).history[THIS_MONTH].accepted += accepted_total - accepted_ind;

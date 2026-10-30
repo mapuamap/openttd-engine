@@ -426,6 +426,7 @@ enum class SaveLoadVersion : uint16_t {
 	DoubleEndedShips, ///< Saveload version: 368, GitHub pull request: 16002\n Double-ended (NewGRF-only) ships can reverse without turning.
 
 	TownNeedsGrowth, ///< Fork mapuamap/openttd-engine: supply-driven town growth (needs, growth budget, power links).
+	TownValuablesBonus, ///< Fork mapuamap/openttd-engine: valuables bonus need of towns.
 
 	MaxVersion, ///< Highest possible saveload version.
 };

@@ -3977,6 +3977,7 @@ STR_TOWN_NEED_PASSENGERS                                        :Пассажи�
 STR_TOWN_NEED_MAIL                                              :Почта
 STR_TOWN_NEED_GOODS                                             :Товары
 STR_TOWN_NEED_ELECTRICITY                                       :Электричество
+STR_TOWN_NEED_VALUABLES                                         :Ценности
 
 ##### Supply-driven town growth: needs module (town_growth.cpp)
 
@@ -4011,6 +4012,7 @@ STR_TOWN_SUPPLY_MULTIPLIER                                      :x{DECIMAL}
 STR_TOWN_SUPPLY_COVERAGE                                        :{BLACK}{COMMA}%
 STR_TOWN_SUPPLY_NEED_LOCKED                                     :{GRAY}с {COMMA} жител{P я ей ей}
 STR_TOWN_SUPPLY_NEED_NOT_IN_CLIMATE                             :{GRAY}не нужно в этом климате
+STR_TOWN_SUPPLY_NEED_BONUS                                      :{GRAY}бонус
 STR_TOWN_SUPPLY_NEED_FORCED                                     :{LTBLUE}задано вручную
 STR_TOWN_SUPPLY_NEED_BLOCKING                                   :{RED}останавливает рост
 STR_TOWN_SUPPLY_DETAIL_TRANSPORTED                              :{BLACK}Перевезено за месяц: {ORANGE}{COMMA}{BLACK} / {CARGO_SHORT}
@@ -4021,6 +4023,7 @@ STR_TOWN_SUPPLY_TOOLTIP_PASSENGERS                              :{BLACK}Пасс
 STR_TOWN_SUPPLY_TOOLTIP_MAIL                                    :{BLACK}Почта: какая доля почты города перевозится. Полное снабжение - {COMMA}% перевезённой. Нужна с {COMMA} жител{P я ей ей}.{}Как улучшить: охватите станциями весь город и перевозите больше почты.
 STR_TOWN_SUPPLY_TOOLTIP_GOODS                                   :{BLACK}Товары, доставленные в город. Полное снабжение - единица товаров в месяц на каждые {COMMA} жител{P я ей ей}. Нужны с {COMMA} жител{P я ей ей}.{}Как улучшить: везите товары с заводов на станции в городе.
 STR_TOWN_SUPPLY_TOOLTIP_ELECTRICITY                             :{BLACK}Электричество от электростанций, подключённых к городу (список ниже). Полное снабжение - 1 МВт·ч в месяц на каждые {COMMA} жител{P я ей ей}; электростанция делает 1 МВт·ч из тонны угля. Нужно с {COMMA} жител{P я ей ей}.{}Как улучшить: возите уголь на эти электростанции или постройте новую рядом с городом.
+STR_TOWN_SUPPLY_TOOLTIP_VALUABLES                               :{BLACK}Ценности (золото, алмазы), доставленные в город: бонус, а не потребность. Без них город растёт как обычно; каждый уровень добавляет к росту 2%, до +10% при полном снабжении. Полное снабжение - единица в месяц на каждые {COMMA} жител{P я ей ей}.{}Ценности и товары принимает любой дом.
 STR_TOWN_SUPPLY_TOOLTIP_LEVELS                                  :{BLACK}Уровень по снабжению: 1{NBSP}от{NBSP}{COMMA}%, 2{NBSP}от{NBSP}{COMMA}%, 3{NBSP}от{NBSP}{COMMA}%, 4{NBSP}от{NBSP}{COMMA}%, 5{NBSP}от{NBSP}{COMMA}%.{}Влияние на рост: на уровне{NBSP}0 рост останавливается, 1:{NBSP}x{DECIMAL}, 2:{NBSP}x{DECIMAL}, 3:{NBSP}x{DECIMAL}, 4:{NBSP}x{DECIMAL}, 5:{NBSP}x{DECIMAL}.{}Пока потребность городу не нужна, она считается не ниже уровня{NBSP}3.
 STR_TOWN_SUPPLY_BOTTLENECK                                      :{BLACK}Узкое место: {ORANGE}{STRING}{BLACK} - {STRING}
 STR_TOWN_SUPPLY_BOTTLENECK_BLOCKING                             :{BLACK}Рост остановлен: {RED}{STRING}{BLACK} - {STRING}
@@ -4030,6 +4033,7 @@ STR_TOWN_SUPPLY_ACTION_PASSENGERS                               :перевоз�
 STR_TOWN_SUPPLY_ACTION_MAIL                                     :перевозите больше почты из города
 STR_TOWN_SUPPLY_ACTION_GOODS                                    :привозите в город больше товаров
 STR_TOWN_SUPPLY_ACTION_ELECTRICITY                              :возите больше угля на электростанции города
+STR_TOWN_SUPPLY_ACTION_VALUABLES                                :везите ценности на станции в городе
 STR_TOWN_SUPPLY_ACTION_NO_POWER_PLANT                           :постройте электростанцию рядом с городом
 STR_TOWN_SUPPLY_PLANTS_TITLE                                    :{BLACK}Электростанции города: {ORANGE}{COMMA}{BLACK} (город подключает до {COMMA})
 STR_TOWN_SUPPLY_PLANTS_COLUMN_NAME                              :{BLACK}Электростанция

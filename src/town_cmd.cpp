@@ -736,7 +736,7 @@ static void AddAcceptedCargoSetMask(CargoType cargo, uint amount, CargoArray &ac
  * @param[out] acceptance CargoArray to be filled with acceptance information.
  * @param[out] always_accepted Bitmask of always accepted cargo types
  */
-void AddAcceptedCargoOfHouse(TileIndex tile, HouseID house, const HouseSpec *hs, Town *t, CargoArray &acceptance, CargoTypes &always_accepted)
+static void AddAcceptedCargoOfHouseSpec(TileIndex tile, HouseID house, const HouseSpec *hs, Town *t, CargoArray &acceptance, CargoTypes &always_accepted)
 {
 	CargoType accepts[lengthof(hs->accepts_cargo)];
 
@@ -775,6 +775,30 @@ void AddAcceptedCargoOfHouse(TileIndex tile, HouseID house, const HouseSpec *hs,
 	/* No custom acceptance, so fill in with the default values */
 	for (uint8_t i = 0; i < lengthof(accepts); i++) {
 		AddAcceptedCargoSetMask(accepts[i], hs->cargo_acceptance[i], acceptance, always_accepted);
+	}
+}
+
+/**
+ * Determine accepted cargo for a house: what its spec accepts, and goods and valuables, which every house
+ * accepts fully because the town growth model counts their deliveries.
+ * @param tile Tile of house, or INVALID_TILE if not yet built.
+ * @param house HouseID of house.
+ * @param hs HouseSpec of house.
+ * @param t Town that house belongs to, or nullptr if not yet built.
+ * @param[out] acceptance CargoArray to be filled with acceptance information.
+ * @param[out] always_accepted Bitmask of always accepted cargo types
+ */
+void AddAcceptedCargoOfHouse(TileIndex tile, HouseID house, const HouseSpec *hs, Town *t, CargoArray &acceptance, CargoTypes &always_accepted)
+{
+	CargoArray house_acceptance{};
+	AddAcceptedCargoOfHouseSpec(tile, house, hs, t, house_acceptance, always_accepted);
+	for (const CargoSpec *cs : CargoSpec::Iterate()) {
+		CargoType cargo = cs->Index();
+		if (IsTownGrowthCargo(cargo)) {
+			house_acceptance[cargo] = std::max<uint>(house_acceptance[cargo], 8);
+			always_accepted.Set(cargo);
+		}
+		acceptance[cargo] += house_acceptance[cargo];
 	}
 }
 

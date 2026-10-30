@@ -3802,6 +3802,7 @@ STR_TOWN_NEED_PASSENGERS                                        :Passengers
 STR_TOWN_NEED_MAIL                                              :Mail
 STR_TOWN_NEED_GOODS                                             :Goods
 STR_TOWN_NEED_ELECTRICITY                                       :Electricity
+STR_TOWN_NEED_VALUABLES                                         :Valuables
 
 ##### Supply-driven town growth: needs module (town_growth.cpp)
 
@@ -3836,6 +3837,7 @@ STR_TOWN_SUPPLY_MULTIPLIER                                      :x{DECIMAL}
 STR_TOWN_SUPPLY_COVERAGE                                        :{BLACK}{COMMA}%
 STR_TOWN_SUPPLY_NEED_LOCKED                                     :{GRAY}from {COMMA} residents
 STR_TOWN_SUPPLY_NEED_NOT_IN_CLIMATE                             :{GRAY}not needed in this climate
+STR_TOWN_SUPPLY_NEED_BONUS                                      :{GRAY}bonus
 STR_TOWN_SUPPLY_NEED_FORCED                                     :{LTBLUE}forced
 STR_TOWN_SUPPLY_NEED_BLOCKING                                   :{RED}stops growth
 STR_TOWN_SUPPLY_DETAIL_TRANSPORTED                              :{BLACK}Transported last month: {ORANGE}{COMMA}{BLACK} / {CARGO_SHORT}
@@ -3846,6 +3848,7 @@ STR_TOWN_SUPPLY_TOOLTIP_PASSENGERS                              :{BLACK}Passenge
 STR_TOWN_SUPPLY_TOOLTIP_MAIL                                    :{BLACK}Mail: the share of the town's mail that is transported. Fully supplied at {COMMA}% transported. Needed from {COMMA} residents.{}To improve: cover the whole town with stations and carry more mail.
 STR_TOWN_SUPPLY_TOOLTIP_GOODS                                   :{BLACK}Goods delivered to the town. Fully supplied at one unit of goods a month for every {COMMA} residents. Needed from {COMMA} residents.{}To improve: bring goods from factories to stations in the town.
 STR_TOWN_SUPPLY_TOOLTIP_ELECTRICITY                             :{BLACK}Electricity from the power plants linked to the town (listed below). Fully supplied at 1 MWh a month for every {COMMA} residents; a power plant makes 1 MWh from 1 tonne of coal. Needed from {COMMA} residents.{}To improve: deliver coal to these power plants or build a new power station near the town.
+STR_TOWN_SUPPLY_TOOLTIP_VALUABLES                               :{BLACK}Valuables (gold, diamonds) delivered to the town: a bonus, not a need. Without them the town grows as usual; each level adds 2% to its growth, up to +10% at full supply. Fully supplied at one unit a month for every {COMMA} residents.{}Every house accepts valuables and goods.
 STR_TOWN_SUPPLY_TOOLTIP_LEVELS                                  :{BLACK}Level by supply: 1{NBSP}from{NBSP}{COMMA}%, 2{NBSP}from{NBSP}{COMMA}%, 3{NBSP}from{NBSP}{COMMA}%, 4{NBSP}from{NBSP}{COMMA}%, 5{NBSP}from{NBSP}{COMMA}%.{}Growth by level: 0{NBSP}stops growth, 1:{NBSP}x{DECIMAL}, 2:{NBSP}x{DECIMAL}, 3:{NBSP}x{DECIMAL}, 4:{NBSP}x{DECIMAL}, 5:{NBSP}x{DECIMAL}.{}A need the town does not have yet counts as at least level{NBSP}3.
 STR_TOWN_SUPPLY_BOTTLENECK                                      :{BLACK}Bottleneck: {ORANGE}{STRING}{BLACK} - {STRING}
 STR_TOWN_SUPPLY_BOTTLENECK_BLOCKING                             :{BLACK}Growth stopped by: {RED}{STRING}{BLACK} - {STRING}
@@ -3855,6 +3858,7 @@ STR_TOWN_SUPPLY_ACTION_PASSENGERS                               :carry more pass
 STR_TOWN_SUPPLY_ACTION_MAIL                                     :carry more mail from the town
 STR_TOWN_SUPPLY_ACTION_GOODS                                    :deliver more goods to the town
 STR_TOWN_SUPPLY_ACTION_ELECTRICITY                              :deliver more coal to the town's power plants
+STR_TOWN_SUPPLY_ACTION_VALUABLES                                :deliver valuables to stations in the town
 STR_TOWN_SUPPLY_ACTION_NO_POWER_PLANT                           :build a power station near the town
 STR_TOWN_SUPPLY_PLANTS_TITLE                                    :{BLACK}Power plants supplying the town: {ORANGE}{COMMA}{BLACK} (the town links up to {COMMA})
 STR_TOWN_SUPPLY_PLANTS_COLUMN_NAME                              :{BLACK}Power plant

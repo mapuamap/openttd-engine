@@ -401,7 +401,7 @@
 
 /* static */ bool ScriptTown::IsValidNeed(TownNeed need)
 {
-	return need >= NEED_PASSENGERS && need <= NEED_ELECTRICITY;
+	return need >= NEED_PASSENGERS && need <= NEED_VALUABLES;
 }
 
 /* static */ SQInteger ScriptTown::GetNeedLevel(TownID town_id, TownNeed need)

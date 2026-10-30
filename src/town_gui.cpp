@@ -793,6 +793,12 @@ static CargoType GetTownNeedCargo(TownNeed need)
 			return cs == nullptr ? INVALID_CARGO : cs->Index();
 		}
 
+		case TownNeed::Valuables:
+			for (const CargoSpec *cs : CargoSpec::Iterate()) {
+				if (IsValuablesCargo(cs->Index())) return cs->Index();
+			}
+			return INVALID_CARGO;
+
 		default:
 			return INVALID_CARGO;
 	}
@@ -810,7 +816,7 @@ static TownNeed FindTownBottleneck(const Town *t)
 	uint8_t bottleneck_level = TOWN_NEED_LEVEL_MAX;
 	uint16_t bottleneck_coverage = 0;
 	for (TownNeed need : EnumRange(TownNeed::End)) {
-		if (!IsTownNeedUnlocked(t, need)) continue;
+		if (IsTownNeedBonus(need) || !IsTownNeedUnlocked(t, need)) continue;
 
 		uint8_t level = GetTownNeedEffectiveLevel(t, need);
 		uint16_t coverage = t->growth.needs[need].coverage;
@@ -837,6 +843,7 @@ static StringID GetTownNeedAction(const Town *t, TownNeed need)
 		case TownNeed::Mail: return STR_TOWN_SUPPLY_ACTION_MAIL;
 		case TownNeed::Goods: return STR_TOWN_SUPPLY_ACTION_GOODS;
 		case TownNeed::Electricity: return t->growth.power_links.empty() ? STR_TOWN_SUPPLY_ACTION_NO_POWER_PLANT : STR_TOWN_SUPPLY_ACTION_ELECTRICITY;
+		case TownNeed::Valuables: return STR_TOWN_SUPPLY_ACTION_VALUABLES;
 		default: NOT_REACHED();
 	}
 }
@@ -950,7 +957,8 @@ private:
 		CargoType cargo = GetTownNeedCargo(need);
 		if (!IsValidCargoType(cargo)) return GetString(STR_TOWN_SUPPLY_DETAIL_PLAIN, state.supplied, state.demand);
 
-		return GetString(need == TownNeed::Goods ? STR_TOWN_SUPPLY_DETAIL_DELIVERED : STR_TOWN_SUPPLY_DETAIL_TRANSPORTED, state.supplied, cargo, state.demand);
+		bool delivered = need == TownNeed::Goods || need == TownNeed::Valuables;
+		return GetString(delivered ? STR_TOWN_SUPPLY_DETAIL_DELIVERED : STR_TOWN_SUPPLY_DETAIL_TRANSPORTED, state.supplied, cargo, state.demand);
 	}
 
 	/**
@@ -964,6 +972,7 @@ private:
 		const TownNeedState &state = t->growth.needs[need];
 		if (state.forced != TOWN_NEED_NOT_FORCED) return GetString(STR_TOWN_SUPPLY_NEED_FORCED);
 		if (GetTownNeedUnlockPopulation(need) == UINT32_MAX) return GetString(STR_TOWN_SUPPLY_NEED_NOT_IN_CLIMATE);
+		if (IsTownNeedBonus(need)) return GetString(STR_TOWN_SUPPLY_NEED_BONUS);
 		if (!IsTownNeedUnlocked(t, need)) return GetString(STR_TOWN_SUPPLY_NEED_LOCKED, GetTownNeedUnlockPopulation(need));
 		if (t->growth.status == TownGrowthStatus::Blocked && t->growth.blocking_need == need) return GetString(STR_TOWN_SUPPLY_NEED_BLOCKING);
 		return {};
@@ -986,8 +995,9 @@ private:
 	 * Draw the five level boxes of a need.
 	 * @param r Rectangle to draw in; the boxes are centred vertically.
 	 * @param level The level to show.
+	 * @param bonus Whether the need is a bonus, whose level 0 is neutral instead of blocking.
 	 */
-	void DrawLevelBoxes(const Rect &r, uint8_t level) const
+	void DrawLevelBoxes(const Rect &r, uint8_t level, bool bonus) const
 	{
 		bool rtl = _current_text_dir == TD_RTL;
 		int gap = WidgetDimensions::scaled.hsep_normal;
@@ -998,8 +1008,8 @@ private:
 		box.top = top;
 		box.bottom = top + this->pip_size.height - 1;
 		for (uint8_t i = 1; i <= TOWN_NEED_LEVEL_MAX; i++) {
-			GfxFillRect(box, level == 0 ? PC_RED : PC_BLACK);
-			GfxFillRect(box.Shrink(border), i <= level ? GetTownNeedLevelPixelColour(level) : GetColourGradient(Colours::Brown, Shade::Dark));
+			GfxFillRect(box, level == 0 && !bonus ? PC_RED : PC_BLACK);
+			GfxFillRect(box.Shrink(border), i <= level ? (bonus ? PC_GREEN : GetTownNeedLevelPixelColour(level)) : GetColourGradient(Colours::Brown, Shade::Dark));
 			box = box.Translate(rtl ? -(this->pip_size.width + gap) : this->pip_size.width + gap, 0);
 		}
 	}
@@ -1057,9 +1067,11 @@ private:
 
 			auto cells = columns(ir.WithHeight(this->need_row_height));
 			DrawString(cells[0].Translate(0, text_offset), GetTownNeedName(need), unlocked ? TextColour::Orange : TextColour::Grey);
-			this->DrawLevelBoxes(cells[1], level);
-			auto [value, decimals] = GetMultiplierDecimal(GetTownNeedLevelMultiplier(level));
-			DrawString(cells[2].Translate(0, text_offset), GetString(STR_TOWN_SUPPLY_MULTIPLIER, value, decimals), GetTownNeedLevelTextColour(level));
+			bool bonus = IsTownNeedBonus(need);
+			this->DrawLevelBoxes(cells[1], level, bonus);
+			auto [value, decimals] = GetMultiplierDecimal(GetTownNeedMultiplier(need, level));
+			TextColour effect_colour = bonus ? (level > 0 ? TextColour::Green : TextColour::Yellow) : GetTownNeedLevelTextColour(level);
+			DrawString(cells[2].Translate(0, text_offset), GetString(STR_TOWN_SUPPLY_MULTIPLIER, value, decimals), effect_colour);
 			DrawString(cells[3].Translate(0, text_offset), GetString(STR_TOWN_SUPPLY_COVERAGE, state.coverage), TextColour::FromString, AlignmentH::End);
 			DrawString(cells[4].Translate(0, text_offset), GetNeedMarker(t, need));
 
@@ -1353,6 +1365,10 @@ public:
 					case to_underlying(TownNeed::Electricity):
 						text = GetString(STR_TOWN_SUPPLY_TOOLTIP_ELECTRICITY, economy.town_need_power_residents, GetTownNeedUnlockPopulation(TownNeed::Electricity));
 						break;
+					case to_underlying(TownNeed::Valuables):
+						/* The bonus has its own levels; the table of the other needs does not apply. */
+						GuiShowTooltips(this, GetEncodedString(STR_TOWN_SUPPLY_TOOLTIP_VALUABLES, TownGrowthBalance::VALUABLES_RESIDENTS), close_cond);
+						return true;
 					default:
 						break;
 				}

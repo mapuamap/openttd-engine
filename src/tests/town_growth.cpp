@@ -182,6 +182,28 @@ TEST_CASE("TownGrowthMultiplier")
 	CHECK(CalcTownGrowthMultiplier(all_three, true, 0) == 1500);
 }
 
+TEST_CASE("TownValuablesBonus")
+{
+	CHECK(IsTownNeedBonus(TownNeed::Valuables));
+	CHECK_FALSE(IsTownNeedBonus(TownNeed::Goods));
+
+	/* A bonus never slows growth: level 0 is neutral, every level adds 2%. */
+	CHECK(GetTownNeedMultiplier(TownNeed::Valuables, 0) == 1000);
+	CHECK(GetTownNeedMultiplier(TownNeed::Valuables, 1) == 1020);
+	CHECK(GetTownNeedMultiplier(TownNeed::Valuables, 5) == 1100);
+	CHECK(GetTownNeedMultiplier(TownNeed::Goods, 0) == 0);
+
+	/* The fifth level in the multiplier is the valuables bonus. */
+	const std::array<uint8_t, 5> neutral_no_valuables = {3, 3, 3, 3, 0};
+	const std::array<uint8_t, 5> neutral_full_valuables = {3, 3, 3, 3, 5};
+	const std::array<uint8_t, 5> all_five_with_valuables = {5, 5, 5, 5, 5};
+	const std::array<uint8_t, 5> blocked_with_valuables = {5, 0, 5, 5, 5};
+	CHECK(CalcTownGrowthMultiplier(neutral_no_valuables, false, SPEED_NORMAL) == 1000);
+	CHECK(CalcTownGrowthMultiplier(neutral_full_valuables, false, SPEED_NORMAL) == 1100);
+	CHECK(CalcTownGrowthMultiplier(all_five_with_valuables, false, SPEED_NORMAL) == ALL_FIVE * 11 / 10);
+	CHECK(CalcTownGrowthMultiplier(blocked_with_valuables, false, SPEED_NORMAL) == 0);
+}
+
 TEST_CASE("TownYearlyGrowth")
 {
 	/* Calibration: all needs at 5 (M = 1.6^4) or all at 3 (M = 1). */

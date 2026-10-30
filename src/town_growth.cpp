@@ -58,6 +58,7 @@ StringID GetTownNeedName(TownNeed need)
 		case TownNeed::Mail: return STR_TOWN_NEED_MAIL;
 		case TownNeed::Goods: return STR_TOWN_NEED_GOODS;
 		case TownNeed::Electricity: return STR_TOWN_NEED_ELECTRICITY;
+		case TownNeed::Valuables: return STR_TOWN_NEED_VALUABLES;
 		default: NOT_REACHED();
 	}
 }
@@ -213,7 +214,7 @@ uint32_t CalcTownGrowthSpeedFactor(uint8_t speed_setting, bool funded)
 
 /**
  * Compute the growth multiplier of a town.
- * @param effective_levels Effective level of every need.
+ * @param effective_levels Effective level of every need, in the order of #TownNeed.
  * @param funded Whether new buildings are funded in the town (x1.5; it never lifts a level 0).
  * @param speed_setting Value of the town growth speed setting.
  * @return Multiplier per mille.
@@ -221,8 +222,8 @@ uint32_t CalcTownGrowthSpeedFactor(uint8_t speed_setting, bool funded)
 uint32_t CalcTownGrowthMultiplier(std::span<const uint8_t> effective_levels, bool funded, uint8_t speed_setting)
 {
 	uint64_t multiplier = 1000;
-	for (uint8_t level : effective_levels) {
-		multiplier = multiplier * GetTownNeedLevelMultiplier(level) / 1000;
+	for (size_t i = 0; i < effective_levels.size() && i < to_underlying(TownNeed::End); i++) {
+		multiplier = multiplier * GetTownNeedMultiplier(static_cast<TownNeed>(i), effective_levels[i]) / 1000;
 	}
 	if (funded) multiplier = multiplier * 3 / 2;
 	multiplier = multiplier * CalcTownGrowthSpeedFactor(speed_setting, funded) / 1000;
@@ -325,6 +326,11 @@ static void GetTownNeedSupplyAndDemand(const Town *t, TownNeed need, uint32_t &s
 			demand = population / std::max<uint16_t>(settings.town_need_power_residents, 1);
 			break;
 
+		case TownNeed::Valuables:
+			supplied = t->growth.valuables_received;
+			demand = GetTownNeedDemand(t, need);
+			break;
+
 		default: NOT_REACHED();
 	}
 }
@@ -354,6 +360,10 @@ uint32_t GetTownNeedDemand(const Town *t, TownNeed need)
 		case TownNeed::Electricity:
 			return t->cache.population / std::max<uint16_t>(_settings_game.economy.town_need_power_residents, 1);
 
+		case TownNeed::Valuables:
+			/* Never zero: without a demand the coverage of a bonus would count as neutral (level 3) for free. */
+			return std::max<uint32_t>(t->cache.population / TownGrowthBalance::VALUABLES_RESIDENTS, 1);
+
 		default: NOT_REACHED();
 	}
 }
@@ -370,6 +380,7 @@ void UpdateTownNeeds(Town *t)
 		GetTownNeedSupplyAndDemand(t, need, state.supplied, state.demand);
 		UpdateTownNeedCoverage(state, CalcTownNeedCoverage(state.supplied, state.demand, t->cache.population));
 	}
+	t->growth.valuables_received = 0;
 }
 
 /**
@@ -381,6 +392,12 @@ uint32_t GetTownNeedUnlockPopulation(TownNeed need)
 {
 	/* Without power plants in this climate electricity never becomes a need. */
 	if (need == TownNeed::Electricity && !IsElectricityAvailable()) return UINT32_MAX;
+	/* Without valuables in this climate there is no valuables bonus. */
+	if (need == TownNeed::Valuables) {
+		bool available = false;
+		for (const CargoSpec *cs : CargoSpec::Iterate()) available |= IsValuablesCargo(cs->Index());
+		if (!available) return UINT32_MAX;
+	}
 	return TownGrowthBalance::UNLOCK_POPULATION[to_underlying(need)];
 }
 
@@ -405,6 +422,8 @@ bool IsTownNeedUnlocked(const Town *t, TownNeed need)
 uint8_t GetTownNeedEffectiveLevel(const Town *t, TownNeed need)
 {
 	const TownNeedState &state = t->growth.needs[need];
+	/* A bonus only helps: neither the unlock nor the small town rule lifts it. */
+	if (IsTownNeedBonus(need)) return std::min(state.forced != TOWN_NEED_NOT_FORCED ? state.forced : state.level, TOWN_NEED_LEVEL_MAX);
 	return CalcTownNeedEffectiveLevel(state.level, state.forced, t->cache.population, GetTownNeedUnlockPopulation(need));
 }
 
@@ -416,6 +435,50 @@ uint8_t GetTownNeedEffectiveLevel(const Town *t, TownNeed need)
 uint16_t GetTownNeedLevelMultiplier(uint8_t level)
 {
 	return TownGrowthBalance::LEVEL_MULTIPLIER[std::min(level, TOWN_NEED_LEVEL_MAX)];
+}
+
+/**
+ * Check whether a need is a bonus: it can only speed growth up, its level 0 is neutral and it never blocks growth.
+ * @param need The need.
+ * @return True iff the need is a bonus.
+ */
+bool IsTownNeedBonus(TownNeed need)
+{
+	return need == TownNeed::Valuables;
+}
+
+/**
+ * Get the growth multiplier of a level of a need.
+ * @param need The need.
+ * @param level The level.
+ * @return Multiplier per mille.
+ */
+uint16_t GetTownNeedMultiplier(TownNeed need, uint8_t level)
+{
+	if (IsTownNeedBonus(need)) return TownGrowthBalance::BONUS_LEVEL_MULTIPLIER[std::min(level, TOWN_NEED_LEVEL_MAX)];
+	return GetTownNeedLevelMultiplier(level);
+}
+
+/**
+ * Check whether a cargo is valuables for the growth bonus (armoured cargo: valuables, gold, diamonds).
+ * @param cargo The cargo.
+ * @return True iff deliveries of the cargo count for the valuables bonus.
+ */
+bool IsValuablesCargo(CargoType cargo)
+{
+	return IsValidCargoType(cargo) && CargoSpec::Get(cargo)->classes.Test(CargoClass::Armoured);
+}
+
+/**
+ * Check whether every house of a town accepts a cargo, because the growth model counts its deliveries:
+ * goods and valuables.
+ * @param cargo The cargo.
+ * @return True iff every house accepts the cargo.
+ */
+bool IsTownGrowthCargo(CargoType cargo)
+{
+	if (!IsValidCargoType(cargo)) return false;
+	return CargoSpec::Get(cargo)->town_acceptance_effect == TownAcceptanceEffect::Goods || IsValuablesCargo(cargo);
 }
 
 /**
@@ -489,7 +552,7 @@ void UpdateTownGrowthState(Town *t)
 	} else {
 		growth.status = TownGrowthStatus::Growing;
 		for (TownNeed need : EnumRange(TownNeed::End)) {
-			if (GetTownNeedEffectiveLevel(t, need) == 0) {
+			if (!IsTownNeedBonus(need) && GetTownNeedEffectiveLevel(t, need) == 0) {
 				growth.status = TownGrowthStatus::Blocked;
 				growth.blocking_need = need;
 				break;

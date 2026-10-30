@@ -2134,8 +2134,8 @@ static bool ConTownNeeds(std::span<std::string_view> argv)
 		return a->index < b->index;
 	});
 
-	IConsolePrint(CC_INFO, "{:>5} {:>10} {:>5} {:>5} {:>5} {:>5} {:>16} {:>7} {:>8} {:>8}  {:<16} {}",
-		"id", "population", "pass", "mail", "goods", "elec", "coverage %", "mult", "growth/y", "budget", "status", "name");
+	IConsolePrint(CC_INFO, "{:>5} {:>10} {:>5} {:>5} {:>5} {:>5} {:>5} {:>20} {:>7} {:>8} {:>8}  {:<16} {}",
+		"id", "population", "pass", "mail", "goods", "elec", "valu", "coverage %", "mult", "growth/y", "budget", "status", "name");
 	for (const Town *t : towns) {
 		const TownGrowthState &g = t->growth;
 		std::array<std::string, to_underlying(TownNeed::End)> levels;
@@ -2146,8 +2146,8 @@ static bool ConTownNeeds(std::span<std::string_view> argv)
 			levels[to_underlying(n)] = fmt::format("{}/{}{}", GetTownNeedEffectiveLevel(t, n), s.level, mark);
 			format_append(coverage, "{}{}", n == TownNeed::Begin ? "" : "/", s.coverage);
 		}
-		IConsolePrint(CC_INFO, "{:>5} {:>10} {:>5} {:>5} {:>5} {:>5} {:>16} {:>7} {:>8} {:>8}  {:<16} {}",
-			t->index, t->cache.population, levels[0], levels[1], levels[2], levels[3], coverage,
+		IConsolePrint(CC_INFO, "{:>5} {:>10} {:>5} {:>5} {:>5} {:>5} {:>5} {:>20} {:>7} {:>8} {:>8}  {:<16} {}",
+			t->index, t->cache.population, levels[0], levels[1], levels[2], levels[3], levels[4], coverage,
 			FormatPerMille(g.multiplier), g.yearly_growth, g.budget / 1000, GetTownGrowthStatusText(t),
 			GetString(STR_TOWN_NAME, t->index));
 	}
@@ -2189,10 +2189,12 @@ static bool ConTownForceNeed(std::span<std::string_view> argv)
 		need = TownNeed::Goods;
 	} else if (argv[2] == "e") {
 		need = TownNeed::Electricity;
+	} else if (argv[2] == "v") {
+		need = TownNeed::Valuables;
 	} else if (argv[2] == "all") {
 		need = TownNeed::End;
 	} else {
-		IConsolePrint(CC_ERROR, "Unknown need '{}', use p, m, g, e or all.", argv[2]);
+		IConsolePrint(CC_ERROR, "Unknown need '{}', use p, m, g, e, v or all.", argv[2]);
 		return true;
 	}
 

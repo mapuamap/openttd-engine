@@ -20,6 +20,7 @@ enum class TownNeed : uint8_t {
 	Mail, ///< Share of the generated mail that is transported.
 	Goods, ///< Goods delivered to the town.
 	Electricity, ///< Electricity received from the linked power plants.
+	Valuables, ///< Valuables (armoured cargo) delivered to the town; an optional bonus that never slows growth.
 	End, ///< End marker.
 };
 
@@ -64,6 +65,7 @@ struct TownGrowthState {
 	TownNeed blocking_need = TownNeed::End; ///< The need that blocks growth while #status is #TownGrowthStatus::Blocked.
 	std::vector<TownPowerLink> power_links{}; ///< Linked power plants, nearest first.
 	uint16_t retry_ticks = 0; ///< Ticks to wait before the builder is tried again after a failure.
+	uint32_t valuables_received = 0; ///< Valuables (armoured cargo) delivered to the town this month.
 	uint8_t builder_failures = 0; ///< Consecutive failed builder steps; from a few on the town has no space to grow.
 	std::shared_ptr<TownBlockCache> block_cache{}; ///< NOSAVE: blocks of the town grid used by the builder, rebuilt from the map after loading.
 };

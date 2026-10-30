@@ -137,6 +137,7 @@ public:
 		NEED_MAIL = to_underlying(::TownNeed::Mail), ///< Share of the generated mail that is transported.
 		NEED_GOODS = to_underlying(::TownNeed::Goods), ///< Goods delivered to the town.
 		NEED_ELECTRICITY = to_underlying(::TownNeed::Electricity), ///< Electricity received from the power plants linked to the town.
+		NEED_VALUABLES = to_underlying(::TownNeed::Valuables), ///< Valuables delivered to the town; a bonus that never slows or blocks growth.
 
 		/* Custom added value, only valid for this API */
 		NEED_INVALID = -1, ///< An invalid need, or no need.
