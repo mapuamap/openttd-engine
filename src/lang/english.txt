@@ -2861,6 +2861,63 @@ STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_BRIDGE                  :{BLACK}Build ra
 STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_TUNNEL                  :{BLACK}Build railway tunnel. Also press Shift to show cost estimate only
 STR_RAIL_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR                :{BLACK}Toggle build/remove for railway track, signals, waypoints and stations. Ctrl+Click to also remove the rail of waypoints and stations
 STR_RAIL_TOOLBAR_TOOLTIP_CONVERT_RAIL                           :{BLACK}Convert/Upgrade the type of rail. Also press Shift to show cost estimate only
+STR_RAIL_TOOLBAR_TOOLTIP_BLUEPRINTS                             :{BLACK}Rail blueprints: copy an area of railway and paste it elsewhere, rotated or mirrored
+
+# Rail blueprint window
+STR_BLUEPRINT_CAPTION                                           :{WHITE}Rail Blueprints
+STR_BLUEPRINT_LIST_TOOLTIP                                      :{BLACK}Saved blueprints. Click to select a blueprint, double-click to start pasting it
+STR_BLUEPRINT_LIST_EMPTY                                        :No blueprints yet. Use "Copy area" to make one
+STR_BLUEPRINT_LIST_DETAILS                                      :{NUM}x{NUM}, {COMMA} item{P "" s}
+STR_BLUEPRINT_LIST_BROKEN                                       :unreadable
+STR_BLUEPRINT_COPY                                              :{BLACK}Copy area
+STR_BLUEPRINT_COPY_TOOLTIP                                      :{BLACK}Drag a rectangle on the map to copy its railway (track, signals, depots, stations, waypoints, bridges and tunnels) into a new blueprint. Hotkey: C
+STR_BLUEPRINT_PASTE                                             :{BLACK}Paste
+STR_BLUEPRINT_PASTE_TOOLTIP                                     :{BLACK}Place the selected blueprint: its north corner follows the mouse, click to build it. Stays active for more copies until Esc or right-click. Hotkey: V
+STR_BLUEPRINT_RENAME                                            :{BLACK}Rename
+STR_BLUEPRINT_RENAME_TOOLTIP                                    :{BLACK}Rename the selected blueprint
+STR_BLUEPRINT_DELETE                                            :{BLACK}Delete
+STR_BLUEPRINT_DELETE_TOOLTIP                                    :{BLACK}Delete the selected blueprint
+STR_BLUEPRINT_ROTATE_LEFT                                       :{BLACK}Rotate left
+STR_BLUEPRINT_ROTATE_LEFT_TOOLTIP                               :{BLACK}Rotate the blueprint a quarter turn counter-clockwise. Hotkey: Shift+R
+STR_BLUEPRINT_ROTATE_RIGHT                                      :{BLACK}Rotate right
+STR_BLUEPRINT_ROTATE_RIGHT_TOOLTIP                              :{BLACK}Rotate the blueprint a quarter turn clockwise. Hotkey: R
+STR_BLUEPRINT_MIRROR                                            :{BLACK}Mirror
+STR_BLUEPRINT_MIRROR_TOOLTIP                                    :{BLACK}Mirror the blueprint. Hotkey: M
+STR_BLUEPRINT_RAILTYPE                                          :{BLACK}Selected rail
+STR_BLUEPRINT_RAILTYPE_TOOLTIP                                  :{BLACK}Build everything with the rail type selected in the railway construction toolbar instead of the rail types stored in the blueprint
+STR_BLUEPRINT_ABORT                                             :{BLACK}Abort paste
+STR_BLUEPRINT_ABORT_TOOLTIP                                     :{BLACK}Stop pasting the blueprint; what was already built stays
+STR_BLUEPRINT_STATUS_TRANSFORM                                  :{BLACK}Rotation: {GOLD}{NUM}°{STRING}
+STR_BLUEPRINT_STATUS_MIRRORED                                   :, mirrored
+STR_BLUEPRINT_STATUS_SIZE                                       :{BLACK}Selected: {GOLD}{RAW_STRING}{BLACK}, {NUM}x{NUM} after rotation, {COMMA} item{P "" s}
+STR_BLUEPRINT_STATUS_NO_SELECTION                               :{BLACK}No blueprint selected
+STR_BLUEPRINT_STATUS_PASTE_NONE                                 :{BLACK}No blueprint pasted yet
+STR_BLUEPRINT_STATUS_PASTE_RUNNING                              :{BLACK}Pasting {GOLD}{RAW_STRING}{BLACK}: {NUM}/{NUM} commands, {COMMA} built, {COMMA} failed, {CURRENCY_LONG}
+STR_BLUEPRINT_STATUS_PASTE_DONE                                 :{BLACK}Pasted {GOLD}{RAW_STRING}{BLACK}: {COMMA} built, {COMMA} failed, cost {CURRENCY_LONG}
+STR_BLUEPRINT_STATUS_OUT_OF_MONEY                               :{RED}Stopped: out of money
+STR_BLUEPRINT_STATUS_ABORTED                                    :{RED}Aborted
+STR_BLUEPRINT_STATUS_LAST_ERROR                                 :{BLACK}Last error: {STRING}
+STR_BLUEPRINT_DEFAULT_NAME                                      :Blueprint {NUM}
+STR_BLUEPRINT_QUERY_NAME_CAPTION                                :{WHITE}Name of the new blueprint
+STR_BLUEPRINT_QUERY_RENAME_CAPTION                              :{WHITE}Rename blueprint
+STR_BLUEPRINT_DELETE_CAPTION                                    :{WHITE}Delete Blueprint
+STR_BLUEPRINT_DELETE_QUERY                                      :{YELLOW}Delete the blueprint "{RAW_STRING}"?
+STR_BLUEPRINT_SAVED                                             :{WHITE}Blueprint "{RAW_STRING}" saved
+STR_BLUEPRINT_PARTIAL_LEFT_OUT                                  :{WHITE}{COMMA} bridge{P "" s} or tunnel{P "" s} left out: only one end is inside the area
+
+STR_ERROR_BLUEPRINT_CAN_T_COPY                                  :{WHITE}Can't copy this area...
+STR_ERROR_BLUEPRINT_NO_RAIL                                     :{WHITE}... there is no railway in this area
+STR_ERROR_BLUEPRINT_CAN_T_SAVE                                  :{WHITE}Can't save the blueprint...
+STR_ERROR_BLUEPRINT_WRITE_FAILED                                :{WHITE}... the blueprint file could not be written
+STR_ERROR_BLUEPRINT_NAME_EXISTS                                 :{WHITE}... a blueprint with this name already exists
+STR_ERROR_BLUEPRINT_CAN_T_RENAME                                :{WHITE}Can't rename the blueprint...
+STR_ERROR_BLUEPRINT_CAN_T_LOAD                                  :{WHITE}Can't load the blueprint...
+STR_ERROR_BLUEPRINT_FILE_BROKEN                                 :{WHITE}... the file of "{RAW_STRING}" is missing or broken
+STR_ERROR_BLUEPRINT_CAN_T_PASTE                                 :{WHITE}Can't paste the blueprint here...
+STR_ERROR_BLUEPRINT_DOES_NOT_FIT                                :{WHITE}... the blueprint does not fit on the map here
+STR_ERROR_BLUEPRINT_EMPTY                                       :{WHITE}... the blueprint is empty
+STR_ERROR_BLUEPRINT_OTHER                                       :{WHITE}... {RAW_STRING}
+STR_ERROR_BLUEPRINT_PASTE_RUNNING                               :{WHITE}... another blueprint is still being pasted
 
 STR_RAIL_NAME_RAILROAD                                          :Railway
 STR_RAIL_NAME_ELRAIL                                            :Electrified railway

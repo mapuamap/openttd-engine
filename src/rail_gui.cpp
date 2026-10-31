@@ -43,6 +43,7 @@
 #include "timer/timer.h"
 #include "timer/timer_game_calendar.h"
 #include "picker_gui.h"
+#include "blueprint_gui.h"
 
 #include "station_map.h"
 #include "tunnelbridge_map.h"
@@ -643,6 +644,11 @@ struct BuildRailToolbarWindow : Window {
 			return;
 		}
 
+		if (widget == WID_RAT_BLUEPRINTS) {
+			ShowBlueprintWindow();
+			return;
+		}
+
 		this->last_user_action = widget;
 		bool started = HandlePlacePushButton(this, widget, this->GetCursorForWidget(widget), this->GetHighLightStyleForWidget(widget));
 
@@ -906,6 +912,7 @@ struct BuildRailToolbarWindow : Window {
 		Hotkey('T', "tunnel", WID_RAT_BUILD_TUNNEL),
 		Hotkey('R', "remove", WID_RAT_REMOVE),
 		Hotkey('C', "convert", WID_RAT_CONVERT_RAIL),
+		Hotkey('P', "blueprints", WID_RAT_BLUEPRINTS),
 		Hotkey(WKC_L_BRACKET, "prev_railtype", to_underlying(SpecialListHotkeys::PreviousItem)),
 		Hotkey(WKC_R_BRACKET, "next_railtype", to_underlying(SpecialListHotkeys::NextItem)),
 		Hotkey(WKC_L_BRACKET | WKC_CTRL, "first_railtype", to_underlying(SpecialListHotkeys::FirstItem)),
@@ -951,6 +958,8 @@ static constexpr std::initializer_list<NWidgetPart> _nested_build_rail_widgets =
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetSpriteTip(SPR_IMG_REMOVE, STR_RAIL_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR),
 		NWidget(WWT_IMGBTN, Colours::DarkGreen, WID_RAT_CONVERT_RAIL),
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetSpriteTip(SPR_IMG_CONVERT_RAIL, STR_RAIL_TOOLBAR_TOOLTIP_CONVERT_RAIL),
+		NWidget(WWT_IMGBTN, Colours::DarkGreen, WID_RAT_BLUEPRINTS),
+						SetFill(0, 1), SetToolbarMinimalSize(1), SetSpriteTip(SPR_IMG_STORY_BOOK, STR_RAIL_TOOLBAR_TOOLTIP_BLUEPRINTS),
 	EndContainer(),
 };
 
@@ -963,6 +972,16 @@ static WindowDesc _build_rail_desc(
 	&BuildRailToolbarWindow::hotkeys
 );
 
+
+/**
+ * Get the rail type that is selected in the rail construction toolbar (or was selected last).
+ * @return The rail type, or INVALID_RAILTYPE when the local company cannot build it.
+ */
+RailType GetSelectedRailType()
+{
+	if (!Company::IsValidID(_local_company) || !ValParamRailType(_cur_railtype)) return INVALID_RAILTYPE;
+	return _cur_railtype;
+}
 
 /**
  * Open the build rail toolbar window for a specific rail type.

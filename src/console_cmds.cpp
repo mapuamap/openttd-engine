@@ -11,6 +11,7 @@
 #include "core/string_consumer.hpp"
 #include "console_internal.h"
 #include "blueprint.h"
+#include "blueprint_gui.h"
 #include "debug.h"
 #include "engine_func.h"
 #include "landscape.h"
@@ -3118,6 +3119,7 @@ static bool ConBlueprintCopy(std::span<std::string_view> argv)
 		IConsolePrint(CC_ERROR, "Could not write '{}'.", GetBlueprintFileName(bp.name));
 		return true;
 	}
+	InvalidateWindowClassesData(WindowClass::Blueprints, 1);
 	IConsolePrint(CC_INFO, "Blueprint '{}': {}x{}, {} track tiles, {} signals, {} depots, {} bridges/tunnels, {} station tiles; {} partial bridges/tunnels left out; {} ms.",
 		bp.name, bp.width, bp.height, bp.tracks.size(), bp.signals.size(), bp.depots.size(), bp.tunnelbridges.size(), bp.stations.size(), stats.partial_tunnelbridges, ms);
 	return true;
@@ -3241,6 +3243,7 @@ static bool ConBlueprintDelete(std::span<std::string_view> argv)
 	}
 	if (argv.size() != 2) return false;
 	if (DeleteBlueprint(argv[1])) {
+		InvalidateWindowClassesData(WindowClass::Blueprints, 1);
 		IConsolePrint(CC_INFO, "Blueprint '{}' deleted.", argv[1]);
 	} else {
 		IConsolePrint(CC_ERROR, "Blueprint '{}' not found.", argv[1]);
@@ -3301,6 +3304,21 @@ static bool ConBlueprintStatus(std::span<std::string_view> argv)
 	IConsolePrint(CC_INFO, "Blueprint paste '{}': {}, commands {}/{}/{} (done/sent/total), {} built, {} failed, cost {}{}{}.",
 		s.name, s.active ? "running" : "finished", s.chunks_done, s.chunks_sent, s.chunks_total, s.built, s.failed, static_cast<int64_t>(s.cost),
 		s.out_of_money ? ", out of money" : "", s.aborted ? ", aborted" : "");
+	return true;
+}
+
+/** Open the rail blueprint window. @copydoc IConsoleCmdProc */
+static bool ConBlueprintWindow(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Open the rail blueprint window. Usage: 'blueprint_window'.");
+		return true;
+	}
+	if (_game_mode != GameMode::Normal) {
+		IConsolePrint(CC_ERROR, "Only available in a game.");
+		return true;
+	}
+	ShowBlueprintWindow();
 	return true;
 }
 
@@ -3621,6 +3639,7 @@ void IConsoleStdLibRegister()
 	IConsole::CmdRegister("blueprint_delete",        ConBlueprintDelete);
 	IConsole::CmdRegister("blueprint_compare",       ConBlueprintCompare);
 	IConsole::CmdRegister("blueprint_status",        ConBlueprintStatus);
+	IConsole::CmdRegister("blueprint_window",        ConBlueprintWindow);
 
 	/* NewGRF development stuff */
 	IConsole::CmdRegister("reload_newgrfs",          ConNewGRFReload,     ConHookNewGRFDeveloperTool);
