@@ -10,6 +10,7 @@
 #include "stdafx.h"
 #include "core/string_consumer.hpp"
 #include "console_internal.h"
+#include "blueprint.h"
 #include "debug.h"
 #include "engine_func.h"
 #include "landscape.h"
@@ -3076,6 +3077,233 @@ static bool ConTownSupplyWindow(std::span<std::string_view> argv)
 	return true;
 }
 
+/* --- Rail blueprints --- */
+
+/**
+ * Parse a tile coordinate argument.
+ * @param arg The argument.
+ * @param max Exclusive upper bound.
+ * @return The coordinate, or std::nullopt when invalid.
+ */
+static std::optional<uint> ParseBlueprintCoordinate(std::string_view arg, uint max)
+{
+	auto v = ParseType<uint>(arg);
+	if (!v.has_value() || *v >= max) return std::nullopt;
+	return v;
+}
+
+/** Copy the rail infrastructure of an area into a blueprint file. @copydoc IConsoleCmdProc */
+static bool ConBlueprintCopy(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Copy the rail infrastructure of an area into a blueprint. Usage: 'blueprint_copy <x1> <y1> <x2> <y2> <name>'.");
+		return true;
+	}
+	if (argv.size() != 6) return false;
+
+	auto x1 = ParseBlueprintCoordinate(argv[1], Map::SizeX());
+	auto y1 = ParseBlueprintCoordinate(argv[2], Map::SizeY());
+	auto x2 = ParseBlueprintCoordinate(argv[3], Map::SizeX());
+	auto y2 = ParseBlueprintCoordinate(argv[4], Map::SizeY());
+	if (!x1.has_value() || !y1.has_value() || !x2.has_value() || !y2.has_value()) {
+		IConsolePrint(CC_ERROR, "Invalid coordinates.");
+		return true;
+	}
+
+	auto start = std::chrono::steady_clock::now();
+	BlueprintCaptureStats stats;
+	Blueprint bp = CaptureBlueprint(TileXY(*x1, *y1), TileXY(*x2, *y2), argv[5], &stats);
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+	if (!SaveBlueprint(bp)) {
+		IConsolePrint(CC_ERROR, "Could not write '{}'.", GetBlueprintFileName(bp.name));
+		return true;
+	}
+	IConsolePrint(CC_INFO, "Blueprint '{}': {}x{}, {} track tiles, {} signals, {} depots, {} bridges/tunnels, {} station tiles; {} partial bridges/tunnels left out; {} ms.",
+		bp.name, bp.width, bp.height, bp.tracks.size(), bp.signals.size(), bp.depots.size(), bp.tunnelbridges.size(), bp.stations.size(), stats.partial_tunnelbridges, ms);
+	return true;
+}
+
+/** Paste a blueprint. @copydoc IConsoleCmdProc */
+static bool ConBlueprintPaste(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Paste a blueprint with its north corner at x,y. Usage: 'blueprint_paste <name> <x> <y> [<rotation 0-3> [<mirror 0|1> [<company> [<rail type label>]]]]'.");
+		IConsolePrint(CC_HELP, "Rotation is in quarter turns clockwise, the mirror flips north-east and south-west before rotating. Company: 1-based; defaults to your company.");
+		return true;
+	}
+	if (argv.size() < 4 || argv.size() > 8) return false;
+
+	std::optional<Blueprint> bp = LoadBlueprint(argv[1]);
+	if (!bp.has_value()) {
+		IConsolePrint(CC_ERROR, "Blueprint '{}' not found or broken.", argv[1]);
+		return true;
+	}
+	auto x = ParseBlueprintCoordinate(argv[2], Map::SizeX());
+	auto y = ParseBlueprintCoordinate(argv[3], Map::SizeY());
+	if (!x.has_value() || !y.has_value()) {
+		IConsolePrint(CC_ERROR, "Invalid coordinates.");
+		return true;
+	}
+
+	BlueprintPasteOptions options;
+	if (argv.size() > 4) {
+		auto rotation = ParseType<uint>(argv[4]);
+		if (!rotation.has_value() || *rotation > 3) return false;
+		options.transform.rotation = static_cast<uint8_t>(*rotation);
+	}
+	if (argv.size() > 5) {
+		auto mirror = ParseType<uint>(argv[5]);
+		if (!mirror.has_value() || *mirror > 1) return false;
+		options.transform.mirror = *mirror == 1;
+	}
+	CompanyID company = _local_company;
+	if (argv.size() > 6) {
+		auto c = ParseType<uint>(argv[6]);
+		if (!c.has_value() || *c == 0 || !Company::IsValidID(static_cast<CompanyID>(*c - 1))) {
+			IConsolePrint(CC_ERROR, "Unknown company '{}'.", argv[6]);
+			return true;
+		}
+		company = static_cast<CompanyID>(*c - 1);
+		if (!_network_server && _networking && company != _local_company) {
+			IConsolePrint(CC_ERROR, "Only the server can paste for another company.");
+			return true;
+		}
+	}
+	if (argv.size() > 7) {
+		if (argv[7].size() != 4) return false;
+		RailTypeLabel label{};
+		for (size_t i = 0; i < 4; i++) label[i] = static_cast<uint8_t>(argv[7][i]);
+		options.railtype = GetRailTypeByLabel(label);
+		if (options.railtype == INVALID_RAILTYPE) {
+			IConsolePrint(CC_ERROR, "Unknown rail type '{}'.", argv[7]);
+			return true;
+		}
+	}
+	if (!Company::IsValidID(company)) {
+		IConsolePrint(CC_ERROR, "No company to paste for; give one.");
+		return true;
+	}
+
+	BlueprintPastePlan plan = PlanBlueprintPaste(*bp, TileXY(*x, *y), options);
+	if (plan.chunks.empty()) {
+		IConsolePrint(CC_ERROR, "Cannot paste '{}': {}.", bp->name, plan.error);
+		return true;
+	}
+	size_t chunks = plan.chunks.size();
+	size_t items = plan.items;
+	if (!StartBlueprintPaste(bp->name, std::move(plan), company)) {
+		IConsolePrint(CC_ERROR, "Another blueprint is being pasted.");
+		return true;
+	}
+	IConsolePrint(CC_INFO, "Pasting '{}': {} items in {} commands.", bp->name, items, chunks);
+	return true;
+}
+
+/** List the saved blueprints. @copydoc IConsoleCmdProc */
+static bool ConBlueprintList(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "List the saved blueprints. Usage: 'blueprint_list'.");
+		return true;
+	}
+	std::vector<std::string> names = ListBlueprints();
+	IConsolePrint(CC_INFO, "{} blueprints in {}", names.size(), GetBlueprintDirectory());
+	for (const std::string &name : names) IConsolePrint(CC_INFO, "  {}", name);
+	return true;
+}
+
+/** Show the contents of a blueprint. @copydoc IConsoleCmdProc */
+static bool ConBlueprintInfo(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Show what a blueprint contains. Usage: 'blueprint_info <name>'.");
+		return true;
+	}
+	if (argv.size() != 2) return false;
+	std::optional<Blueprint> bp = LoadBlueprint(argv[1]);
+	if (!bp.has_value()) {
+		IConsolePrint(CC_ERROR, "Blueprint '{}' not found or broken.", argv[1]);
+		return true;
+	}
+	std::string railtypes;
+	for (const RailTypeLabel &label : bp->railtypes) format_append(railtypes, " {}", std::string_view{reinterpret_cast<const char *>(label.data()), label.size()});
+	IConsolePrint(CC_INFO, "Blueprint '{}': {}x{}; rail types:{}; {} track tiles, {} signals, {} depots, {} bridges/tunnels, {} station tiles, {} NewGRF station specs.",
+		bp->name, bp->width, bp->height, railtypes, bp->tracks.size(), bp->signals.size(), bp->depots.size(), bp->tunnelbridges.size(), bp->stations.size(), bp->specs.size());
+	return true;
+}
+
+/** Delete a blueprint. @copydoc IConsoleCmdProc */
+static bool ConBlueprintDelete(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Delete a blueprint. Usage: 'blueprint_delete <name>'.");
+		return true;
+	}
+	if (argv.size() != 2) return false;
+	if (DeleteBlueprint(argv[1])) {
+		IConsolePrint(CC_INFO, "Blueprint '{}' deleted.", argv[1]);
+	} else {
+		IConsolePrint(CC_ERROR, "Blueprint '{}' not found.", argv[1]);
+	}
+	return true;
+}
+
+/** Compare two blueprints, the first one transformed. @copydoc IConsoleCmdProc */
+static bool ConBlueprintCompare(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Compare blueprint a, rotated and mirrored, with blueprint b. Usage: 'blueprint_compare <a> <b> [<rotation 0-3> [<mirror 0|1>]]'.");
+		return true;
+	}
+	if (argv.size() < 3 || argv.size() > 5) return false;
+	std::optional<Blueprint> a = LoadBlueprint(argv[1]);
+	std::optional<Blueprint> b = LoadBlueprint(argv[2]);
+	if (!a.has_value() || !b.has_value()) {
+		IConsolePrint(CC_ERROR, "Blueprint not found or broken.");
+		return true;
+	}
+	BlueprintTransform transform;
+	if (argv.size() > 3) {
+		auto rotation = ParseType<uint>(argv[3]);
+		if (!rotation.has_value() || *rotation > 3) return false;
+		transform.rotation = static_cast<uint8_t>(*rotation);
+	}
+	if (argv.size() > 4) {
+		auto mirror = ParseType<uint>(argv[4]);
+		if (!mirror.has_value() || *mirror > 1) return false;
+		transform.mirror = *mirror == 1;
+	}
+	std::string diff = a->Transformed(transform).Compare(*b);
+	if (diff.empty()) {
+		IConsolePrint(CC_INFO, "Blueprints equal ({} items).", a->CountItems());
+	} else {
+		IConsolePrint(CC_WARNING, "Blueprints differ:");
+		std::string_view rest = diff;
+		while (!rest.empty()) {
+			size_t eol = rest.find('\n');
+			IConsolePrint(CC_WARNING, "  {}", rest.substr(0, eol));
+			if (eol == std::string_view::npos) break;
+			rest.remove_prefix(eol + 1);
+		}
+	}
+	return true;
+}
+
+/** Show or abort the current paste. @copydoc IConsoleCmdProc */
+static bool ConBlueprintStatus(std::span<std::string_view> argv)
+{
+	if (argv.empty()) {
+		IConsolePrint(CC_HELP, "Show the progress of the current blueprint paste, or abort it. Usage: 'blueprint_status [abort]'.");
+		return true;
+	}
+	if (argv.size() == 2 && argv[1] == "abort") AbortBlueprintPaste();
+	const BlueprintPasteStatus &s = GetBlueprintPasteStatus();
+	IConsolePrint(CC_INFO, "Blueprint paste '{}': {}, commands {}/{}/{} (done/sent/total), {} built, {} failed, cost {}{}{}.",
+		s.name, s.active ? "running" : "finished", s.chunks_done, s.chunks_sent, s.chunks_total, s.built, s.failed, static_cast<int64_t>(s.cost),
+		s.out_of_money ? ", out of money" : "", s.aborted ? ", aborted" : "");
+	return true;
+}
+
 /** List all road types and their configuration. */
 static void ConDumpRoadTypes()
 {
@@ -3386,6 +3614,13 @@ void IConsoleStdLibRegister()
 
 	/* Supply-driven town growth: GUI */
 	IConsole::CmdRegister("town_supply_window",      ConTownSupplyWindow);
+	IConsole::CmdRegister("blueprint_copy",          ConBlueprintCopy);
+	IConsole::CmdRegister("blueprint_paste",         ConBlueprintPaste);
+	IConsole::CmdRegister("blueprint_list",          ConBlueprintList);
+	IConsole::CmdRegister("blueprint_info",          ConBlueprintInfo);
+	IConsole::CmdRegister("blueprint_delete",        ConBlueprintDelete);
+	IConsole::CmdRegister("blueprint_compare",       ConBlueprintCompare);
+	IConsole::CmdRegister("blueprint_status",        ConBlueprintStatus);
 
 	/* NewGRF development stuff */
 	IConsole::CmdRegister("reload_newgrfs",          ConNewGRFReload,     ConHookNewGRFDeveloperTool);

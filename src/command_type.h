@@ -306,6 +306,7 @@ enum class Commands : uint8_t {
 	PlaceHouseArea, ///< place an area of houses
 	TownForceNeedLevel, ///< force the level of a need of a town (debugging and game scripts)
 	PowerPlantAddFuel, ///< add fuel to the stock of a power plant (debugging and game scripts)
+	PasteBlueprint, ///< build one chunk of a rail blueprint
 
 	OrderRefit, ///< change the refit information of an order (for "goto depot" )
 	CloneOrder, ///< clone (and share) an order

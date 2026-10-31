@@ -88,6 +88,10 @@ add_files(
     base_media_music.h
     base_media_sounds.h
     base_station_base.h
+    blueprint.cpp
+    blueprint.h
+    blueprint_cmd.cpp
+    blueprint_cmd.h
     bmp.cpp
     bmp.h
     bootstrap_gui.cpp

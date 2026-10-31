@@ -51,6 +51,7 @@ static const EnumIndexArray<std::string_view, Subdirectory, Subdirectory::End> _
 	"game" PATHSEP,
 	"game" PATHSEP "library" PATHSEP,
 	"screenshot" PATHSEP,
+	"blueprint" PATHSEP,
 	"social_integration" PATHSEP,
 	"docs" PATHSEP,
 };
@@ -1026,7 +1027,7 @@ void DeterminePaths(std::string_view exe, bool only_local_path)
 	Debug(Facility::Misc, Severity::Error, "{} found as personal directory", _personal_dir);
 
 	static const Subdirectory default_subdirs[] = {
-		Subdirectory::Save, Subdirectory::Autosave, Subdirectory::Scenario, Subdirectory::Heightmap, Subdirectory::Baseset, Subdirectory::NewGrf, Subdirectory::Ai, Subdirectory::AiLibrary, Subdirectory::Gs, Subdirectory::GsLibrary, Subdirectory::Screenshot, Subdirectory::SocialIntegration
+		Subdirectory::Save, Subdirectory::Autosave, Subdirectory::Scenario, Subdirectory::Heightmap, Subdirectory::Baseset, Subdirectory::NewGrf, Subdirectory::Ai, Subdirectory::AiLibrary, Subdirectory::Gs, Subdirectory::GsLibrary, Subdirectory::Screenshot, Subdirectory::Blueprint, Subdirectory::SocialIntegration
 	};
 
 	for (const auto &default_subdir : default_subdirs) {
