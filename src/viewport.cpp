@@ -84,6 +84,7 @@
 #include "window_gui.h"
 #include "linkgraph/linkgraph_gui.h"
 #include "viewport_kdtree.h"
+#include "blueprint_gui.h"
 #include "town_kdtree.h"
 #include "viewport_sprite_sorter.h"
 #include "bridge_map.h"
@@ -975,7 +976,7 @@ static const HighLightStyle _autorail_type[6][2] = {
  * @param *ti TileInfo Tile that is being drawn
  * @param highlight_style Highlight to draw
  */
-static void DrawAutorailSelection(const TileInfo *ti, HighLightStyle highlight_style)
+static void DrawAutorailSelection(const TileInfo *ti, HighLightStyle highlight_style, bool red = false)
 {
 	SpriteID image;
 	PaletteID pal;
@@ -1001,7 +1002,38 @@ static void DrawAutorailSelection(const TileInfo *ti, HighLightStyle highlight_s
 		pal = PALETTE_SEL_TILE_RED;
 	}
 
-	DrawSelectionSprite(image, _thd.make_square_red ? PALETTE_SEL_TILE_RED : pal, ti, 7, foundation_part);
+	DrawSelectionSprite(image, (red || _thd.make_square_red) ? PALETTE_SEL_TILE_RED : pal, ti, 7, foundation_part);
+}
+
+/**
+ * Draw the preview of a rail blueprint being placed on a tile inside the tile selection.
+ * The selection rectangle is the transformed blueprint with its north corner at the tile under the cursor:
+ * track pieces are drawn as autorail highlights, depots, station tiles and bridge or tunnel ends as tile
+ * rectangles, and the border of the blueprint in blue. Everything is red when the blueprint does not fit.
+ * @param ti The tile being drawn; it is inside the tile selection.
+ */
+static void DrawBlueprintPreviewTile(const TileInfo *ti)
+{
+	uint dx = (ti->x - _thd.pos.x) / TILE_SIZE;
+	uint dy = (ti->y - _thd.pos.y) / TILE_SIZE;
+	uint w = _thd.size.x / TILE_SIZE;
+	uint h = _thd.size.y / TILE_SIZE;
+	uint ox = _thd.pos.x / TILE_SIZE;
+	uint oy = _thd.pos.y / TILE_SIZE;
+	bool fits = ox + w <= Map::MaxX() && oy + h <= Map::MaxY();
+
+	if (!IsValidTile(ti->tile)) return;
+
+	uint8_t value = GetBlueprintPreviewTile(dx, dy);
+	TrackBits tracks{static_cast<uint8_t>(value & BLUEPRINT_PREVIEW_TRACK_MASK)};
+	/* HighLightStyle directions are in the same order as tracks. */
+	for (Track track : tracks) DrawAutorailSelection(ti, static_cast<HighLightStyle>(to_underlying(track)), !fits);
+
+	if (HasBit(value, to_underlying(BlueprintPreviewFlag::Mark))) {
+		DrawTileSelectionRect(ti, fits ? PAL_NONE : PALETTE_SEL_TILE_RED);
+	} else if (dx == 0 || dy == 0 || dx == w - 1 || dy == h - 1) {
+		DrawTileSelectionRect(ti, fits ? PALETTE_SEL_TILE_BLUE : PALETTE_SEL_TILE_RED);
+	}
 }
 
 /** Types of tile highlight. */
@@ -1142,7 +1174,9 @@ static void DrawTileSelection(const TileInfo *ti)
 	if (IsInsideBS(ti->x, _thd.pos.x, _thd.size.x) &&
 			IsInsideBS(ti->y, _thd.pos.y, _thd.size.y)) {
 draw_inner:
-		if (_thd.drawstyle & HT_RECT) {
+		if ((_thd.drawstyle & HT_DRAG_MASK) == HT_RECT && IsBlueprintPreviewActive()) {
+			DrawBlueprintPreviewTile(ti);
+		} else if (_thd.drawstyle & HT_RECT) {
 			if (!is_redsq) DrawTileSelectionRect(ti, _thd.make_square_red ? PALETTE_SEL_TILE_RED : PAL_NONE);
 		} else if (_thd.drawstyle & HT_POINT) {
 			/* Figure out the Z coordinate for the single dot. */

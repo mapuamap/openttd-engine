@@ -3024,6 +3024,63 @@ STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_BRIDGE                  :{BLACK}Стро
 STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_TUNNEL                  :{BLACK}Строительство железнодорожных туннелей. При нажатом Shift - оценка стоимости строительства.
 STR_RAIL_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR                :{BLACK}Переключение между строительством и удалением ж/д путей, сигналов, станций. При нажатом Ctrl убирает станции вместе с рельсами.
 STR_RAIL_TOOLBAR_TOOLTIP_CONVERT_RAIL                           :{BLACK}Преобразовать/модернизировать железнодорожное полотно. При нажатом Shift - оценка стоимости модернизации.
+STR_RAIL_TOOLBAR_TOOLTIP_BLUEPRINTS                             :{BLACK}Шаблоны путей: скопировать участок железной дороги и вставить его в другом месте, с поворотом или отражением
+
+# Rail blueprint window
+STR_BLUEPRINT_CAPTION                                           :{WHITE}Шаблоны путей
+STR_BLUEPRINT_LIST_TOOLTIP                                      :{BLACK}Сохранённые шаблоны. Щелчок - выбрать шаблон, двойной щелчок - начать его вставку
+STR_BLUEPRINT_LIST_EMPTY                                        :Шаблонов пока нет. Создайте шаблон кнопкой «Копировать»
+STR_BLUEPRINT_LIST_DETAILS                                      :{NUM}x{NUM}, {COMMA} объект{P "" а ов}
+STR_BLUEPRINT_LIST_BROKEN                                       :не читается
+STR_BLUEPRINT_COPY                                              :{BLACK}Копировать
+STR_BLUEPRINT_COPY_TOOLTIP                                      :{BLACK}Выделите прямоугольник на карте, чтобы скопировать его железную дорогу (пути, сигналы, депо, станции, маршрутные точки, мосты и туннели) в новый шаблон. Горячая клавиша: C
+STR_BLUEPRINT_PASTE                                             :{BLACK}Вставить
+STR_BLUEPRINT_PASTE_TOOLTIP                                     :{BLACK}Разместить выбранный шаблон: его северный угол следует за мышью, щелчок - построить. Режим остаётся включённым для новых копий до Esc или правого щелчка. Горячая клавиша: V
+STR_BLUEPRINT_RENAME                                            :{BLACK}Переименовать
+STR_BLUEPRINT_RENAME_TOOLTIP                                    :{BLACK}Переименовать выбранный шаблон
+STR_BLUEPRINT_DELETE                                            :{BLACK}Удалить
+STR_BLUEPRINT_DELETE_TOOLTIP                                    :{BLACK}Удалить выбранный шаблон
+STR_BLUEPRINT_ROTATE_LEFT                                       :{BLACK}Повернуть влево
+STR_BLUEPRINT_ROTATE_LEFT_TOOLTIP                               :{BLACK}Повернуть шаблон на четверть оборота против часовой стрелки. Горячая клавиша: Shift+R
+STR_BLUEPRINT_ROTATE_RIGHT                                      :{BLACK}Повернуть вправо
+STR_BLUEPRINT_ROTATE_RIGHT_TOOLTIP                              :{BLACK}Повернуть шаблон на четверть оборота по часовой стрелке. Горячая клавиша: R
+STR_BLUEPRINT_MIRROR                                            :{BLACK}Отразить
+STR_BLUEPRINT_MIRROR_TOOLTIP                                    :{BLACK}Зеркально отразить шаблон. Горячая клавиша: M
+STR_BLUEPRINT_RAILTYPE                                          :{BLACK}Выбранные рельсы
+STR_BLUEPRINT_RAILTYPE_TOOLTIP                                  :{BLACK}Строить всё с типом рельсов, выбранным в панели строительства железной дороги, а не с типами рельсов из шаблона
+STR_BLUEPRINT_ABORT                                             :{BLACK}Прервать вставку
+STR_BLUEPRINT_ABORT_TOOLTIP                                     :{BLACK}Остановить вставку шаблона; уже построенное останется
+STR_BLUEPRINT_STATUS_TRANSFORM                                  :{BLACK}Поворот: {GOLD}{NUM}°{STRING}
+STR_BLUEPRINT_STATUS_MIRRORED                                   :, отражён
+STR_BLUEPRINT_STATUS_SIZE                                       :{BLACK}Выбран: {GOLD}{RAW_STRING}{BLACK}, {NUM}x{NUM} после поворота, {COMMA} объект{P "" а ов}
+STR_BLUEPRINT_STATUS_NO_SELECTION                               :{BLACK}Шаблон не выбран
+STR_BLUEPRINT_STATUS_PASTE_NONE                                 :{BLACK}Шаблоны ещё не вставлялись
+STR_BLUEPRINT_STATUS_PASTE_RUNNING                              :{BLACK}Вставка {GOLD}{RAW_STRING}{BLACK}: {NUM}/{NUM} команд, построено {COMMA}, не удалось {COMMA}, {CURRENCY_LONG}
+STR_BLUEPRINT_STATUS_PASTE_DONE                                 :{BLACK}Вставлен {GOLD}{RAW_STRING}{BLACK}: построено {COMMA}, не удалось {COMMA}, стоимость {CURRENCY_LONG}
+STR_BLUEPRINT_STATUS_OUT_OF_MONEY                               :{RED}Остановлено: не хватает денег
+STR_BLUEPRINT_STATUS_ABORTED                                    :{RED}Прервано
+STR_BLUEPRINT_STATUS_LAST_ERROR                                 :{BLACK}Последняя ошибка: {STRING}
+STR_BLUEPRINT_DEFAULT_NAME                                      :Шаблон {NUM}
+STR_BLUEPRINT_QUERY_NAME_CAPTION                                :{WHITE}Название нового шаблона
+STR_BLUEPRINT_QUERY_RENAME_CAPTION                              :{WHITE}Переименовать шаблон
+STR_BLUEPRINT_DELETE_CAPTION                                    :{WHITE}Удаление шаблона
+STR_BLUEPRINT_DELETE_QUERY                                      :{YELLOW}Удалить шаблон «{RAW_STRING}»?
+STR_BLUEPRINT_SAVED                                             :{WHITE}Шаблон «{RAW_STRING}» сохранён
+STR_BLUEPRINT_PARTIAL_LEFT_OUT                                  :{WHITE}Пропущено мостов и туннелей: {COMMA}{NBSP}- внутри участка только один их конец
+
+STR_ERROR_BLUEPRINT_CAN_T_COPY                                  :{WHITE}Невозможно скопировать участок...
+STR_ERROR_BLUEPRINT_NO_RAIL                                     :{WHITE}... на участке нет железной дороги
+STR_ERROR_BLUEPRINT_CAN_T_SAVE                                  :{WHITE}Невозможно сохранить шаблон...
+STR_ERROR_BLUEPRINT_WRITE_FAILED                                :{WHITE}... не удалось записать файл шаблона
+STR_ERROR_BLUEPRINT_NAME_EXISTS                                 :{WHITE}... шаблон с таким названием уже есть
+STR_ERROR_BLUEPRINT_CAN_T_RENAME                                :{WHITE}Невозможно переименовать шаблон...
+STR_ERROR_BLUEPRINT_CAN_T_LOAD                                  :{WHITE}Невозможно загрузить шаблон...
+STR_ERROR_BLUEPRINT_FILE_BROKEN                                 :{WHITE}... файл шаблона «{RAW_STRING}» отсутствует или повреждён
+STR_ERROR_BLUEPRINT_CAN_T_PASTE                                 :{WHITE}Невозможно вставить шаблон здесь...
+STR_ERROR_BLUEPRINT_DOES_NOT_FIT                                :{WHITE}... шаблон не помещается на карте в этом месте
+STR_ERROR_BLUEPRINT_EMPTY                                       :{WHITE}... шаблон пуст
+STR_ERROR_BLUEPRINT_OTHER                                       :{WHITE}... {RAW_STRING}
+STR_ERROR_BLUEPRINT_PASTE_RUNNING                               :{WHITE}... ещё идёт вставка другого шаблона
 
 STR_RAIL_NAME_RAILROAD                                          :Ж/д
 STR_RAIL_NAME_RAILROAD.m                                        :Ж/д

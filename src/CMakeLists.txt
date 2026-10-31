@@ -92,6 +92,8 @@ add_files(
     blueprint.h
     blueprint_cmd.cpp
     blueprint_cmd.h
+    blueprint_gui.cpp
+    blueprint_gui.h
     bmp.cpp
     bmp.h
     bootstrap_gui.cpp
