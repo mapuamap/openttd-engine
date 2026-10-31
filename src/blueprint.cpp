@@ -32,6 +32,7 @@
 #include "tunnelbridge_map.h"
 #include "window_func.h"
 #include "network/network.h"
+#include "openttd.h"
 #include "timer/timer.h"
 #include "timer/timer_game_realtime.h"
 
@@ -1054,6 +1055,8 @@ void AbortBlueprintPaste()
 void RunBlueprintPasteJob()
 {
 	if (!_paste_status.active) return;
+	/* While the game is paused and construction is not allowed, wait; the job continues after the pause. */
+	if (_pause_mode.Any() && !IsCommandAllowedWhilePaused(Commands::PasteBlueprint)) return;
 
 	size_t sent = 0;
 	while (!_paste_queue.empty() && _paste_status.active) {
