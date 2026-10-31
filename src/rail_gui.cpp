@@ -686,6 +686,8 @@ struct BuildRailToolbarWindow : Window {
 	EventState OnHotkey(int hotkey) override
 	{
 		if (IsSpecialHotkey(hotkey)) return this->ChangeRailTypeOnHotkey(hotkey);
+		/* While a blueprint is placed, R and C rotate and copy in the blueprint window. */
+		if ((hotkey == WID_RAT_REMOVE || hotkey == WID_RAT_CONVERT_RAIL) && _thd.GetCallbackWnd() != nullptr && _thd.GetCallbackWnd()->window_class == WindowClass::Blueprints) return EventState::NotHandled;
 		MarkTileDirtyByTile(TileVirtXY(_thd.pos.x, _thd.pos.y)); // redraw tile selection
 		return Window::OnHotkey(hotkey);
 	}
