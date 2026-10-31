@@ -878,6 +878,13 @@ BlueprintPastePlan PlanBlueprintPaste(const Blueprint &bp, TileIndex origin, con
 		cw.Commit();
 		plan.items++;
 	}
+	/* Waypoints are built on existing rail. */
+	for (const BlueprintStationTile &st : tbp.stations) {
+		if (!st.waypoint) continue;
+		BlueprintWriter w = cw.Begin(BlueprintItemKind::Track);
+		w.U16(st.x); w.U16(st.y); w.U8(railtypes[st.railtype]); w.U8(TrackBits{AxisToTrack(st.axis)}.base());
+		cw.Commit();
+	}
 
 	/* Stations and waypoints: the rectangles of one station stay in one chunk when possible. */
 	std::map<uint16_t, std::vector<const BlueprintStationTile *>> groups;
