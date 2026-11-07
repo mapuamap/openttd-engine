@@ -294,12 +294,25 @@ public:
 	template <struct Pool<Titem, Tindex, Tgrowth_step, Tpool_type, Tcache> *Tpool>
 	struct PoolItem {
 		const Tindex index; ///< Index of this pool item
+		/**
+		 * Identity of this lifetime of the item.
+		 *
+		 * Assigned from a monotonically increasing counter when the item is
+		 * constructed, so an item that is deleted and recreated at the same
+		 * index is distinguishable even when it has the same properties.
+		 * Runtime only: it is not saved, and it changes when a savegame is
+		 * loaded (the world epoch changes with it).
+		 */
+		uint64_t generation;
 
 		/**
 		 * Construct the item.
 		 * @param index The index of this PoolItem in the pool.
 		 */
-		PoolItem(Tindex index) : index(index) {}
+		PoolItem(Tindex index) : index(index), generation(++PoolItem::next_generation) {}
+
+		/** Counter of item lifetimes in this pool; never reset, so generations stay unique per process. */
+		inline static uint64_t next_generation = 0;
 
 		/** Type of the pool this item is going to be part of */
 		typedef struct Pool<Titem, Tindex, Tgrowth_step, Tpool_type, Tcache> Pool;

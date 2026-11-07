@@ -14,6 +14,11 @@
 #include "../command_func.h"
 #include "../company_func.h"
 #include "../settings_type.h"
+#include "../agent_admin_tools.h"
+#include "../agent_blueprint_tools.h"
+#include "../agent_command_catalog.h"
+#include "../agent_game_tools.h"
+#include "../agent_transport_tools.h"
 #include "../airport_cmd.h"
 #include "../aircraft_cmd.h"
 #include "../autoreplace_cmd.h"
@@ -91,7 +96,20 @@ static constexpr auto _callback_tuple = std::make_tuple(
 	&CcPrepareRailRoute,
 	&CcUpgradeStationCatchment,
 	&CcCloneDepot,
-	&CcGroupVehiclesInArea
+	&CcGroupVehiclesInArea,
+	/* In-game agent tool modules: their own callbacks, so a posted command reports its real result. */
+	&InGameAgent::AgentCommandCallback,
+	&InGameAgent::AgentBuildVehicleCallback,
+	&InGameAgent::AgentAddVehicleToGroupCallback,
+	&InGameAgent::AgentRefitVehicleCallback,
+	&InGameAgent::AgentCloneVehicleCallback,
+	&InGameAgent::CcAgentTransportCommand,
+	&InGameAgent::AgentAdminCommandCallback,
+	&InGameAgent::AgentAdminFoundTownCallback,
+	&InGameAgent::AgentAdminPlaceSignCallback,
+	&InGameAgent::AgentAdminBuildIndustryAreaCallback,
+	&InGameAgent::AgentCommandCatalogCallback,
+	&InGameAgent::AgentBlueprintChunkCallback
 );
 
 #ifdef SILENCE_GCC_FUNCTION_POINTER_CAST

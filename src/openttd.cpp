@@ -37,6 +37,7 @@
 #include "network/network_func.h"
 #include "ai/ai.hpp"
 #include "ai/ai_config.hpp"
+#include "agent_bridge.h"
 #include "settings_func.h"
 #include "genworld.h"
 #include "progress.h"
@@ -1185,6 +1186,25 @@ void SwitchToMode(SwitchMode new_mode)
 
 		default: NOT_REACHED();
 	}
+
+	/* A new world identity starts whenever a game is created, loaded or left. */
+	switch (new_mode) {
+		case SwitchMode::NewGame:
+		case SwitchMode::RestartGame:
+		case SwitchMode::LoadGame:
+		case SwitchMode::StartHeightmap:
+		case SwitchMode::RestartHeightmap:
+		case SwitchMode::LoadHeightmap:
+		case SwitchMode::LoadScenario:
+		case SwitchMode::Editor:
+		case SwitchMode::JoinGame:
+		case SwitchMode::Menu:
+			InGameAgent::ResetWorld();
+			break;
+
+		default:
+			break;
+	}
 }
 
 
@@ -1373,6 +1393,9 @@ void GameLoop()
 		/* Singleplayer */
 		StateGameLoop();
 	}
+
+	/* Run the in-game agent bridge; it also runs while the game is paused. */
+	InGameAgent::Tick();
 
 	if (_pause_mode.None() && _display_opt.Test(DisplayOption::FullAnimation)) DoPaletteAnimations();
 

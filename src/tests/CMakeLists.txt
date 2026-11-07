@@ -1,4 +1,5 @@
 add_test_files(
+    agent_transport_tools.cpp
     alternating_iterator.cpp
     bitmath_func.cpp
     blueprint.cpp
@@ -9,16 +10,26 @@ add_test_files(
     math_func.cpp
     rail_route.cpp
     station_catchment.cpp
+    strgen_commands.cpp
     mock_environment.h
     mock_fontcache.h
     mock_spritecache.cpp
     mock_spritecache.h
+    pool_generation.cpp
     string_builder.cpp
     string_consumer.cpp
     string_inplace.cpp
     string_func.cpp
+    test_agent_admin_tools.cpp
+    test_agent_blueprint_tools.cpp
+    test_agent_bridge_refs.cpp
+    test_agent_capture.cpp
+    test_agent_command_catalog.cpp
+    test_agent_game_tools.cpp
+    test_agent_pause_contract.cpp
     test_main.cpp
     test_network_crypto.cpp
+    test_network_http.cpp
     test_script_admin.cpp
     test_window_desc.cpp
     tilearea.cpp

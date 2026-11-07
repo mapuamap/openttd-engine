@@ -13,7 +13,7 @@
 
 #include "../../safeguards.h"
 
-/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view, HTTPCallback *callback, std::string&&)
+/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view, HTTPCallback *callback, std::string&&, HTTPHeaders)
 {
 	/* No valid HTTP backend was compiled in, so we fail all HTTP requests. */
 	callback->OnFailure();

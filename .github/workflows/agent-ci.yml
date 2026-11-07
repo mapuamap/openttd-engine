@@ -1,0 +1,158 @@
+name: Agent CI (engine)
+
+# Continuous integration for the agent fork of the engine.
+#
+# It runs on the estate's own runner pool, never on GitHub-hosted runners: the account's hosted
+# minutes are billing-blocked, and a hosted runner could not be memory capped. The job therefore
+# asks for the plain hardware labels and nothing else.
+#
+# Two rules decide whether the job runs at all:
+#
+#  * `github.repository_owner == 'denysfast'` - the repository is still `mapuamap/openttd-engine`
+#    until the owner approves the transfer. Under the old owner the guard keeps the job off the
+#    pool entirely (a skipped job costs no slot), instead of queueing work the estate cannot serve.
+#  * a pull request must come from the same repository. The fork is public, and the runner is
+#    self-hosted, so untrusted fork code must not be checked out and built here. External fork PRs
+#    stay unverified until the owner decides how to gate them.
+#
+# `workflow_dispatch` is maintainer-only by GitHub's own rule: only users with write access can
+# dispatch a workflow.
+#
+# Deliberately absent: actions/cache (the cache service is hosted by GitHub and every self-hosted
+# job would pull a tarball over WAN), actions/upload-artifact (quota), any apt/global install (the
+# pool host already has cmake, ninja, a C++ toolchain and the OpenTTD build dependencies), any
+# deploy step, and any HOME override. No artifact bundle is published either: the build and CTest
+# output is tee-ed to stdout, so the logs are ordinary job output and need no upload step.
+
+on:
+  push:
+    # The default branch of the upstream engine is `master`; the agent fork works on
+    # `agent/devtools` and `codex/*`. Both spellings are listed so a renamed branch does not
+    # silently lose CI.
+    branches: [master, main, agent-devtools, agent/devtools, codex-in-game-agent, codex/in-game-agent]
+  pull_request:
+    # Only trusted bases: a PR is built from the head of a same-repository branch (see the job
+    # guard), so no foreign commit is ever executed on the shared host.
+    branches: [master, main, agent-devtools, agent/devtools, codex-in-game-agent, codex/in-game-agent]
+  workflow_dispatch:
+
+concurrency:
+  # One engine build at a time on the pool: the group is per repository, not per ref, because a
+  # second build would contend for the 12 GB the first one is allowed to use. A push to the
+  # default branch is never cancelled, so every `master` commit keeps a verdict.
+  group: agent-ci-engine-${{ github.repository }}
+  cancel-in-progress: ${{ github.ref != format('refs/heads/{0}', github.event.repository.default_branch) }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    if: >-
+      github.repository_owner == 'denysfast' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, linux, x64]
+    # A cold RelWithDebInfo build at -j4 plus the CTest suite is the worst case; the job must never
+    # hang for GitHub's default six hours and hold a slot.
+    timeout-minutes: 120
+    env:
+      # 4 compiler processes x 3 GiB each = the 12 GiB the whole build is allowed to use.
+      BUILD_JOBS: '4'
+      MEMORY_MAX: 12G
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --version | head -n 1
+          ninja --version
+          c++ --version | head -n 1
+
+          # `systemd-run --user` needs a user runtime directory and the user bus. A login shell
+          # normally exports both; a system service does not, so fill in what is missing - but only
+          # when the runtime directory really exists. A missing variable says nothing about whether
+          # the user manager is enabled, so it is never treated as an answer.
+          uid=$(id -u)
+          if [ -z "${XDG_RUNTIME_DIR:-}" ] && [ -d "/run/user/$uid" ]; then
+            XDG_RUNTIME_DIR="/run/user/$uid"
+            export XDG_RUNTIME_DIR
+            echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
+            echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR (was unset)"
+          fi
+          if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -S "$XDG_RUNTIME_DIR/bus" ]; then
+            DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+            export DBUS_SESSION_BUS_ADDRESS
+            echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS" >> "$GITHUB_ENV"
+            echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS (was unset)"
+          fi
+
+          # The memory caps are the only thing standing between a -j4 build and the rest of the
+          # estate, so prove the scope can be started before compiling anything. If this fails, the
+          # message carries the probe output instead of a guess about the cause.
+          if ! systemd-run --user --scope -q -p MemoryMax=1G -p MemorySwapMax=0 -- true; then
+            echo "::error::systemd-run --user cannot start a scope for $(id -un) (XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-unset}); the runner account may need its user manager enabled (loginctl enable-linger $(id -un))"
+            exit 1
+          fi
+
+      - name: Build directory and compiler launcher
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A fresh directory per run: nothing is reused from another branch and nothing is
+          # `rm -rf`-ed, so two runs can never delete each other's objects.
+          BUILD_DIR=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/openttd-agent-ci-XXXXXXXX")
+          echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+          echo "build dir: $BUILD_DIR"
+
+          # The 12 GiB scope below bounds the whole build, not one compiler, and a single heavy
+          # translation unit can take several GiB on its own. The launcher caps every compiler
+          # process at 3 GiB of address space (`ulimit -v` counts KiB: 3145728 KiB = 3 GiB), so a
+          # runaway unit dies on its own instead of taking the scope, and with it the other three
+          # compilers, down.
+          launcher="$BUILD_DIR/cc-launcher.sh"
+          cat > "$launcher" <<'LAUNCHER'
+          #!/bin/sh
+          ulimit -v 3145728 || exit 1
+          exec "$@"
+          LAUNCHER
+          chmod +x "$launcher"
+          echo "compiler launcher: $launcher"
+
+      - name: Configure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/ci-logs"
+          cmake -S "$GITHUB_WORKSPACE" -B "$BUILD_DIR" -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DOPTION_USE_ASSERTS=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER="$BUILD_DIR/cc-launcher.sh" \
+            -DCMAKE_CXX_COMPILER_LAUNCHER="$BUILD_DIR/cc-launcher.sh" \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON 2>&1 | tee "$GITHUB_WORKSPACE/ci-logs/configure.log"
+
+      - name: Build
+        shell: bash
+        timeout-minutes: 90
+        run: |
+          set -euo pipefail
+          # Strict: no `|| true`, no retries, pipefail on, so the first real error fails the job.
+          systemd-run --user --scope -q -p "MemoryMax=${MEMORY_MAX}" -p MemorySwapMax=0 -- \
+            cmake --build "$BUILD_DIR" --target openttd openttd_test regression_files -j "$BUILD_JOBS" \
+            2>&1 | tee "$GITHUB_WORKSPACE/ci-logs/build.log"
+
+      - name: CTest
+        shell: bash
+        timeout-minutes: 45
+        run: |
+          set -euo pipefail
+          # -j1 on purpose: the suites include real game runs, and parallel ones would multiply the
+          # memory of a single job past the 12 GB the scope allows.
+          systemd-run --user --scope -q -p "MemoryMax=${MEMORY_MAX}" -p MemorySwapMax=0 -- \
+            ctest --test-dir "$BUILD_DIR" --output-on-failure -j1 \
+            2>&1 | tee "$GITHUB_WORKSPACE/ci-logs/ctest.log"

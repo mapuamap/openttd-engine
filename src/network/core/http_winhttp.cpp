@@ -9,6 +9,7 @@
 
 #include "../../stdafx.h"
 #include "../../debug.h"
+#include "../../string_func.h"
 
 #include "http.h"
 #include "http_shared.h"
@@ -28,6 +29,7 @@ private:
 	const std::wstring uri; ///< URI to connect to.
 	HTTPThreadSafeCallback callback; ///< Callback to send data back on.
 	const std::string data; ///< Data to send, if any.
+	const HTTPHeaders headers; ///< Extra headers to send, if any.
 
 	HINTERNET connection = nullptr;      ///< Current connection object.
 	HINTERNET request = nullptr;         ///< Current request object.
@@ -35,7 +37,7 @@ private:
 	int depth = 0;                       ///< Current redirect depth we are in.
 
 public:
-	NetworkHTTPRequest(std::wstring &&uri, HTTPCallback *callback, std::string &&data);
+	NetworkHTTPRequest(std::wstring &&uri, HTTPCallback *callback, std::string &&data, HTTPHeaders &&headers);
 
 	~NetworkHTTPRequest();
 
@@ -59,11 +61,13 @@ static std::mutex _new_http_callback_mutex; ///< Mutex to prevent concurrent acc
  * @param uri      the URI to connect to (https://.../..).
  * @param callback the callback to send data back on.
  * @param data     the data we want to send. When non-empty, this will be a POST request, otherwise a GET request.
+ * @param headers  extra headers to send with the request.
  */
-NetworkHTTPRequest::NetworkHTTPRequest(std::wstring &&uri, HTTPCallback *callback, std::string &&data) :
+NetworkHTTPRequest::NetworkHTTPRequest(std::wstring &&uri, HTTPCallback *callback, std::string &&data, HTTPHeaders &&headers) :
 	uri(std::move(uri)),
 	callback(callback),
-	data(std::move(data))
+	data(std::move(data)),
+	headers(std::move(headers))
 {
 	std::lock_guard<std::mutex> lock(_new_http_callback_mutex);
 	_new_http_callbacks.push_back(&this->callback);
@@ -257,13 +261,27 @@ void NetworkHTTPRequest::Connect()
 		return;
 	}
 
+	/* Add the headers the caller supplied. */
+	std::wstring request_headers;
+	bool has_content_type = false;
+	for (const auto &[name, value] : this->headers) {
+		if (StrEqualsIgnoreCase(name, "Content-Type")) has_content_type = true;
+		request_headers += std::wstring(name.begin(), name.end());
+		request_headers += L": ";
+		request_headers += std::wstring(value.begin(), value.end());
+		request_headers += L"\r\n";
+	}
+
 	/* Send the request (possibly with a payload). */
 	if (data.empty()) {
-		WinHttpSendRequest(this->request, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, reinterpret_cast<DWORD_PTR>(this));
+		WinHttpSendRequest(this->request, request_headers.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS : request_headers.c_str(), request_headers.empty() ? 0 : -1, WINHTTP_NO_REQUEST_DATA, 0, 0, reinterpret_cast<DWORD_PTR>(this));
 	} else {
-		/* When the payload starts with a '{', it is a JSON payload. */
-		LPCWSTR content_type = data.starts_with("{") ? L"Content-Type: application/json\r\n" : L"Content-Type: application/x-www-form-urlencoded\r\n";
-		WinHttpSendRequest(this->request, content_type, -1, const_cast<char *>(data.data()), static_cast<DWORD>(data.size()), static_cast<DWORD>(data.size()), reinterpret_cast<DWORD_PTR>(this));
+		/* When the payload starts with a '{', it is a JSON payload. A caller-supplied
+		 * Content-Type wins, so we never send two contradicting Content-Type headers. */
+		if (!has_content_type) {
+			request_headers += data.starts_with("{") ? L"Content-Type: application/json\r\n" : L"Content-Type: application/x-www-form-urlencoded\r\n";
+		}
+		WinHttpSendRequest(this->request, request_headers.c_str(), -1, const_cast<char *>(data.data()), static_cast<DWORD>(data.size()), static_cast<DWORD>(data.size()), reinterpret_cast<DWORD_PTR>(this));
 	}
 }
 
@@ -300,9 +318,15 @@ NetworkHTTPRequest::~NetworkHTTPRequest()
 	_http_callbacks.erase(std::remove(_http_callbacks.begin(), _http_callbacks.end(), &this->callback), _http_callbacks.end());
 }
 
-/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view uri, HTTPCallback *callback, std::string &&data)
+/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view uri, HTTPCallback *callback, std::string &&data, HTTPHeaders headers)
 {
-	auto request = new NetworkHTTPRequest(std::wstring(uri.begin(), uri.end()), callback, std::move(data));
+	/* Reject headers that would allow injecting additional headers. */
+	if (!IsValidHTTPHeaders(headers)) {
+		callback->OnFailure();
+		return;
+	}
+
+	auto request = new NetworkHTTPRequest(std::wstring(uri.begin(), uri.end()), callback, std::move(data), std::move(headers));
 	request->Connect();
 
 	std::lock_guard<std::mutex> lock(_new_http_requests_mutex);

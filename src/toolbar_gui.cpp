@@ -8,6 +8,7 @@
 /** @file toolbar_gui.cpp Code related to the (main) toolbar. */
 
 #include "stdafx.h"
+#include "agent_chat_gui.h"
 #include "core/geometry_func.hpp"
 #include "gui.h"
 #include "spritecache.h"
@@ -1047,7 +1048,7 @@ static CallBackFunction MenuClickMusicWindow(int)
 
 static CallBackFunction ToolbarNewspaperClick(Window *w)
 {
-	PopupMainToolbarMenu(w, WID_TN_MESSAGES, {STR_NEWS_MENU_LAST_MESSAGE_NEWS_REPORT, STR_NEWS_MENU_MESSAGE_HISTORY_MENU, STR_NEWS_MENU_DELETE_ALL_MESSAGES});
+	PopupMainToolbarMenu(w, WID_TN_MESSAGES, {STR_NEWS_MENU_LAST_MESSAGE_NEWS_REPORT, STR_NEWS_MENU_MESSAGE_HISTORY_MENU, STR_NEWS_MENU_DELETE_ALL_MESSAGES, STR_AGENT_CHAT_MENU_ENTRY});
 	return CallBackFunction::None;
 }
 
@@ -1063,6 +1064,7 @@ static CallBackFunction MenuClickNewspaper(int index)
 		case 0: ShowLastNewsMessage(); break;
 		case 1: ShowMessageHistory();  break;
 		case 2: DeleteAllMessages();   break;
+		case 3: ShowAgentChatWindow(); break;
 	}
 	return CallBackFunction::None;
 }

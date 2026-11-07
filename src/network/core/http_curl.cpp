@@ -10,6 +10,7 @@
 #include "../../stdafx.h"
 #include "../../debug.h"
 #include "../../fileio_func.h"
+#include "../../string_func.h"
 #include "../../thread.h"
 
 #include "http.h"
@@ -56,11 +57,13 @@ public:
 	 * @param uri      the URI to connect to (https://.../..).
 	 * @param callback the callback to send data back on.
 	 * @param data     the data we want to send. When non-empty, this will be a POST request, otherwise a GET request.
+	 * @param headers  extra headers to send with the request.
 	 */
-	NetworkHTTPRequest(std::string_view uri, HTTPCallback *callback, std::string &&data) :
+	NetworkHTTPRequest(std::string_view uri, HTTPCallback *callback, std::string &&data, HTTPHeaders &&headers) :
 		uri(uri),
 		callback(callback),
-		data(std::move(data))
+		data(std::move(data)),
+		headers(std::move(headers))
 	{
 		std::lock_guard<std::mutex> lock(_new_http_callback_mutex);
 		_new_http_callbacks.push_back(&this->callback);
@@ -76,6 +79,7 @@ public:
 	const std::string uri; ///< URI to connect to.
 	HTTPThreadSafeCallback callback; ///< Callback to send data back on.
 	const std::string data; ///< Data to send, if any.
+	const HTTPHeaders headers; ///< Extra headers to send, if any.
 };
 
 static std::thread _http_thread; ///< The thread running the HTTP requests.
@@ -89,8 +93,14 @@ static std::string _http_ca_path = ""; ///< Folder with certificate authority da
 #endif /* UNIX */
 
 
-/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view uri, HTTPCallback *callback, std::string &&data)
+/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view uri, HTTPCallback *callback, std::string &&data, HTTPHeaders headers)
 {
+	/* Reject headers that would allow injecting additional headers. */
+	if (!IsValidHTTPHeaders(headers)) {
+		callback->OnFailure();
+		return;
+	}
+
 #if defined(UNIX)
 	if (_http_ca_file.empty() && _http_ca_path.empty()) {
 		callback->OnFailure();
@@ -99,7 +109,7 @@ static std::string _http_ca_path = ""; ///< Folder with certificate authority da
 #endif /* UNIX */
 
 	std::lock_guard<std::mutex> lock(_http_mutex);
-	_http_requests.push(std::make_unique<NetworkHTTPRequest>(uri, callback, std::move(data)));
+	_http_requests.push(std::make_unique<NetworkHTTPRequest>(uri, callback, std::move(data), std::move(headers)));
 	_http_cv.notify_one();
 }
 
@@ -158,9 +168,11 @@ void HttpThread()
 
 		/* Reset to default settings. */
 		curl_easy_reset(curl);
-		curl_slist *headers = nullptr;
+		curl_slist *curl_headers = nullptr;
 
-		if (IsVisibleSeverity(Facility::Net, Severity::Debug1)) {
+		/* CURL's verbose output prints all outgoing headers, which would leak
+		 * credentials like bearer tokens. So only be verbose without extra headers. */
+		if (request->headers.empty() && IsVisibleSeverity(Facility::Net, Severity::Debug1)) {
 			CurlSetOption(curl, CURLOPT_VERBOSE, 1L);
 		}
 
@@ -187,18 +199,26 @@ void HttpThread()
 		/* Fail our call if we don't receive a 2XX return value. */
 		CurlSetOption(curl, CURLOPT_FAILONERROR, 1L);
 
+		/* Add the headers the caller supplied. */
+		bool has_content_type = false;
+		for (const auto &[name, value] : request->headers) {
+			if (StrEqualsIgnoreCase(name, "Content-Type")) has_content_type = true;
+			curl_headers = curl_slist_append(curl_headers, fmt::format("{}: {}", name, value).c_str());
+		}
+
 		/* Prepare POST body and URI. */
 		if (!request->data.empty()) {
-			/* When the payload starts with a '{', it is a JSON payload. */
-			if (request->data.starts_with("{")) {
-				headers = curl_slist_append(headers, "Content-Type: application/json");
-			} else {
-				headers = curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded");
+			/* When the payload starts with a '{', it is a JSON payload. A caller-supplied
+			 * Content-Type wins, so we never send two contradicting Content-Type headers. */
+			if (!has_content_type) {
+				curl_headers = curl_slist_append(curl_headers, request->data.starts_with("{") ? "Content-Type: application/json" : "Content-Type: application/x-www-form-urlencoded");
 			}
 
 			CurlSetOption(curl, CURLOPT_POST, 1L);
 			CurlSetOption(curl, CURLOPT_POSTFIELDS, request->data.c_str());
-			CurlSetOption(curl, CURLOPT_HTTPHEADER, headers);
+		}
+		if (curl_headers != nullptr) {
+			CurlSetOption(curl, CURLOPT_HTTPHEADER, curl_headers);
 		}
 		CurlSetOption(curl, CURLOPT_URL, request->uri.c_str());
 
@@ -230,7 +250,7 @@ void HttpThread()
 		/* Perform the request. */
 		CURLcode res = curl_easy_perform(curl);
 
-		curl_slist_free_all(headers);
+		curl_slist_free_all(curl_headers);
 
 		if (res == CURLE_OK) {
 			Debug(Facility::Net, Severity::Error, "HTTP request succeeded");

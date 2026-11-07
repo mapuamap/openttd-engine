@@ -6605,3 +6605,100 @@ STR_BADGE_CONFIG_FILTERS                                        :{WHITE}Филь
 STR_BADGE_CONFIG_PREVIEW                                        :Предпросмотр
 STR_BADGE_CONFIG_NAME                                           :Название
 STR_BADGE_FILTER_ANY_LABEL                                      :Любой {STRING}
+
+STR_AGENT_CHAT_CAPTION                                          :{WHITE}Чат с агентом
+STR_AGENT_CHAT_MENU_ENTRY                                       :Чат с агентом
+STR_AGENT_CHAT_NEW_CHAT                                         :Новый чат
+STR_AGENT_CHAT_NEW_CHAT_TOOLTIP                                 :Начать новый чат с игровым агентом
+STR_AGENT_CHAT_SEND                                             :Отправить
+STR_AGENT_CHAT_SEND_TOOLTIP                                     :Отправить сообщение (Enter)
+STR_AGENT_CHAT_STOP                                             :Остановить
+STR_AGENT_CHAT_STOP_TOOLTIP                                     :Остановить выполняемую задачу
+STR_AGENT_CHAT_ADD_POINT                                        :Добавить точку
+STR_AGENT_CHAT_ADD_POINT_TOOLTIP                                :Нажмите на тайл на карте, чтобы прикрепить эту точку к сообщению
+STR_AGENT_CHAT_ADD_OBJECT                                       :Добавить объект
+STR_AGENT_CHAT_ADD_OBJECT_TOOLTIP                               :Нажмите на тайл на карте, чтобы прикрепить город, станцию, предприятие или транспорт с него
+STR_AGENT_CHAT_INPUT_TOOLTIP                                    :Введите сообщение. Enter отправляет его, Shift+Enter добавляет новую строку.
+STR_AGENT_CHAT_CHAT_LIST_TOOLTIP                                :Выбрать чат
+STR_AGENT_CHAT_TRANSCRIPT_TOOLTIP                               :Нажмите на вложение, чтобы переместить карту к нему
+STR_AGENT_CHAT_NO_CHATS                                         :{GRAY}Чатов пока нет. Нажмите «Новый чат», чтобы начать.
+STR_AGENT_CHAT_EMPTY_TRANSCRIPT                                 :{GRAY}Сообщений пока нет. Введите сообщение и нажмите «Отправить».
+STR_AGENT_CHAT_NOT_CONNECTED                                    :{GRAY}Нет подключения к серверу агента.
+STR_AGENT_CHAT_TRAY_EMPTY                                       :{GRAY}Нет вложений
+STR_AGENT_CHAT_TRAY_REMOVE                                      :x
+STR_AGENT_CHAT_MORE_ATTACHMENTS                                 :{GRAY}ещё +{NUM}
+STR_AGENT_CHAT_CANDIDATES_CAPTION                               :{WHITE}Выберите объект
+STR_AGENT_CHAT_DEFAULT_TITLE                                    :Чат {NUM}
+STR_AGENT_CHAT_ROLE_USER                                        :Вы
+STR_AGENT_CHAT_ROLE_ASSISTANT                                   :Агент
+STR_AGENT_CHAT_ROLE_SYSTEM                                      :Система
+STR_AGENT_CHAT_ROLE_TOOL                                        :Инструмент
+STR_AGENT_CHAT_MESSAGE_STATUS                                   : ({RAW_STRING})
+STR_AGENT_CHAT_ATTACHMENT_POINT                                 :Точка {NUM}, {NUM}
+STR_AGENT_CHAT_ATTACHMENT_TILE                                  :Тайл {NUM}, {NUM}
+STR_AGENT_CHAT_ATTACHMENT_OBJECT                                :{RAW_STRING} {NUM}
+STR_AGENT_CHAT_ATTACHMENT_STALE                                 :{RAW_STRING} (устарело)
+STR_AGENT_CHAT_ATTACHMENT_UNVERIFIED                            :{RAW_STRING} (не проверено)
+STR_AGENT_CHAT_TYPE_POINT                                       :Точка
+STR_AGENT_CHAT_TYPE_TILE                                        :Тайл
+STR_AGENT_CHAT_TYPE_TOWN                                        :Город
+STR_AGENT_CHAT_TYPE_STATION                                     :Станция
+STR_AGENT_CHAT_TYPE_INDUSTRY                                    :Предприятие
+STR_AGENT_CHAT_TYPE_VEHICLE                                     :Транспорт
+STR_AGENT_CHAT_TYPE_SIGN                                        :Табличка
+STR_AGENT_CHAT_TYPE_COMPANY                                     :Компания
+STR_AGENT_CHAT_TYPE_UNKNOWN                                     :Объект
+STR_AGENT_CHAT_STATUS_IDLE                                      :{GRAY}Агент: свободен
+STR_AGENT_CHAT_STATUS_THINKING                                  :{GRAY}Агент: думает...
+STR_AGENT_CHAT_STATUS_TOOL                                      :{GRAY}Агент: {RAW_STRING}
+STR_AGENT_CHAT_STATUS_DONE                                      :{GRAY}Агент: готово
+STR_AGENT_CHAT_STATUS_FAILED                                    :{RED}Агент: ошибка
+STR_AGENT_CHAT_STATUS_STOPPED                                   :{GRAY}Агент: остановлен
+STR_AGENT_CHAT_STATUS_SETTLING                                  :{GRAY}Агент: завершает...
+STR_AGENT_CHAT_STATUS_STOPPING                                  :{GRAY}Агент: останавливается...
+STR_AGENT_CHAT_STATUS_UNAVAILABLE                               :{RED}Агент: недоступен
+STR_AGENT_CHAT_STATUS_WINDOW                                    :{RAW_STRING} - {RAW_STRING}
+STR_AGENT_CHAT_STATUS_TOOLTIP                                   :Открыть окно чата с агентом
+STR_AGENT_CHAT_ERROR                                            :{RED}Ошибка: {RAW_STRING}
+STR_AGENT_CHAT_ERROR_UNKNOWN                                    :запрос не выполнен
+STR_AGENT_CHAT_TYPE_DEPOT                                       :Депо
+STR_AGENT_CHAT_TYPE_WAYPOINT                                    :Путевая точка
+STR_AGENT_CHAT_TYPE_BUOY                                        :Буй
+STR_AGENT_CHAT_TYPE_HOUSE                                       :Дом
+STR_AGENT_CHAT_TYPE_GROUP                                       :Группа
+STR_AGENT_CHAT_TYPE_ENGINE                                      :Двигатель
+STR_AGENT_CHAT_TYPE_CARGO                                       :Груз
+STR_AGENT_CHAT_TYPE_OBJECT                                      :Объект
+STR_AGENT_CHAT_KIND_TERRAIN                                     :Открытая местность
+STR_AGENT_CHAT_KIND_RAIL                                        :Ж/д путь
+STR_AGENT_CHAT_KIND_ROAD                                        :Дорога
+STR_AGENT_CHAT_KIND_TRAM                                        :Трамвайный путь
+STR_AGENT_CHAT_KIND_SIGNAL                                      :Сигнал
+STR_AGENT_CHAT_KIND_TREES                                       :Деревья
+STR_AGENT_CHAT_KIND_WATER                                       :Вода
+STR_AGENT_CHAT_KIND_BRIDGE                                      :Мост
+STR_AGENT_CHAT_KIND_TUNNEL                                      :Тоннель
+STR_AGENT_CHAT_ATTACHMENT_TILE_WHAT                             :{RAW_STRING} (тайл {NUM}, {NUM})
+STR_AGENT_CHAT_ATTACHMENT_TILE_KIND_SUBTYPE                    :{RAW_STRING} ({RAW_STRING}) (тайл {NUM}, {NUM})
+STR_AGENT_CHAT_SUBTYPE_GRASS                                   :трава
+STR_AGENT_CHAT_SUBTYPE_ROUGH                                   :неровная земля
+STR_AGENT_CHAT_SUBTYPE_ROCKS                                   :камни
+STR_AGENT_CHAT_SUBTYPE_FIELDS                                  :поля
+STR_AGENT_CHAT_SUBTYPE_DESERT                                  :пустыня
+STR_AGENT_CHAT_SUBTYPE_SNOW_OR_DESERT                          :снег или пустыня
+STR_AGENT_CHAT_SUBTYPE_SHORE                                   :берег
+STR_AGENT_CHAT_SUBTYPE_ROUGH_SNOW                              :неровный снег
+STR_AGENT_CHAT_SUBTYPE_COAST                                   :побережье
+STR_AGENT_CHAT_SUBTYPE_CANAL                                   :канал
+STR_AGENT_CHAT_SUBTYPE_RIVER                                   :река
+STR_AGENT_CHAT_SUBTYPE_LOCK                                    :шлюз
+STR_AGENT_CHAT_SUBTYPE_WATER                                   :вода
+STR_AGENT_CHAT_SUBTYPE_CLEAR_ROCKS                             :камни в воде
+STR_AGENT_CHAT_SUBTYPE_COAST_ROCKS                             :прибрежные камни
+STR_AGENT_CHAT_SUBTYPE_DEPOT                                   :депо
+STR_AGENT_CHAT_SUBTYPE_SIGNALS                                 :сигналы
+STR_AGENT_CHAT_SUBTYPE_SEMAPHORE                               :семафор
+STR_AGENT_CHAT_SUBTYPE_ELECTRIC                                :электрический
+STR_AGENT_CHAT_SUBTYPE_AIR                                     :воздушный
+STR_AGENT_CHAT_ADD_COMPANY                                      :Добавить компанию
+STR_AGENT_CHAT_ADD_COMPANY_TOOLTIP                              :Выбрать компанию для вложения

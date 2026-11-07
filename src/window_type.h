@@ -767,6 +767,18 @@ enum class WindowClass : uint16_t {
 	 */
 	Help,
 
+	/**
+	 * In-game agent chat window; %Window numbers:
+	 *   - 0 = #AgentChatWidgets
+	 */
+	AgentChat,
+
+	/**
+	 * In-game agent chat status indicator; %Window numbers:
+	 *   - 0 = #AgentChatStatusWidgets
+	 */
+	AgentChatStatus,
+
 	Invalid = 0xFFFF, ///< Invalid window.
 };
 

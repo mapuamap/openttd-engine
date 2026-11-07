@@ -10,7 +10,35 @@
 #ifndef NETWORK_CORE_HTTP_H
 #define NETWORK_CORE_HTTP_H
 
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
 constexpr int HTTP_429_TOO_MANY_REQUESTS = 429; ///< HTTP error code for when the client is doing too many requests.
+
+/** Extra headers to send with an HTTP request, as name/value pairs. */
+using HTTPHeaders = std::vector<std::pair<std::string, std::string>>;
+
+/**
+ * Check whether the given headers can be sent without allowing header injection.
+ *
+ * A header name or value containing a CR or LF would allow a caller to inject
+ * additional headers, so such headers are rejected instead of being sent.
+ *
+ * @param headers The headers to check.
+ * @return True iff no header name or value contains a CR or LF.
+ */
+inline bool IsValidHTTPHeaders(const HTTPHeaders &headers)
+{
+	for (const auto &[name, value] : headers) {
+		if (name.find_first_of("\r\n") != std::string::npos) return false;
+		if (value.find_first_of("\r\n") != std::string::npos) return false;
+	}
+
+	return true;
+}
 
 /** Callback for when the HTTP handler has something to tell us. */
 struct HTTPCallback {
@@ -50,8 +78,10 @@ public:
 	 * @param uri      the URI to connect to (https://.../..).
 	 * @param callback the callback to send data back on.
 	 * @param data     the data we want to send. When non-empty, this will be a POST request, otherwise a GET request.
+	 * @param headers  extra headers to send with the request. A caller-supplied "Content-Type" replaces the default one.
+	 * @note When a header name or value contains a CR or LF, the request fails via HTTPCallback::OnFailure().
 	 */
-	static void Connect(std::string_view uri, HTTPCallback *callback, std::string &&data = "");
+	static void Connect(std::string_view uri, HTTPCallback *callback, std::string &&data = "", HTTPHeaders headers = {});
 
 	/**
 	 * Do the receiving for all HTTP connections.

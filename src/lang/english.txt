@@ -6344,3 +6344,100 @@ STR_BADGE_CONFIG_FILTERS                                        :{WHITE}Badge Fi
 STR_BADGE_CONFIG_PREVIEW                                        :Preview Image
 STR_BADGE_CONFIG_NAME                                           :Name
 STR_BADGE_FILTER_ANY_LABEL                                      :Any {STRING}
+
+STR_AGENT_CHAT_CAPTION                                          :{WHITE}Agent chat
+STR_AGENT_CHAT_MENU_ENTRY                                       :Agent chat
+STR_AGENT_CHAT_NEW_CHAT                                         :New chat
+STR_AGENT_CHAT_NEW_CHAT_TOOLTIP                                 :Start a new chat with the in-game agent
+STR_AGENT_CHAT_SEND                                             :Send
+STR_AGENT_CHAT_SEND_TOOLTIP                                     :Send the message (Enter)
+STR_AGENT_CHAT_STOP                                             :Stop
+STR_AGENT_CHAT_STOP_TOOLTIP                                     :Stop the running task
+STR_AGENT_CHAT_ADD_POINT                                        :Add point
+STR_AGENT_CHAT_ADD_POINT_TOOLTIP                                :Click a tile on the map to attach that point to the message
+STR_AGENT_CHAT_ADD_OBJECT                                       :Add object
+STR_AGENT_CHAT_ADD_OBJECT_TOOLTIP                               :Click a tile on the map to attach the town, station, industry or vehicle on it
+STR_AGENT_CHAT_INPUT_TOOLTIP                                    :Type a message. Enter sends it, Shift+Enter starts a new line.
+STR_AGENT_CHAT_CHAT_LIST_TOOLTIP                                :Select a chat
+STR_AGENT_CHAT_TRANSCRIPT_TOOLTIP                               :Click an attachment to center the map on it
+STR_AGENT_CHAT_NO_CHATS                                         :{GRAY}No chats yet. Press New chat to start one.
+STR_AGENT_CHAT_EMPTY_TRANSCRIPT                                 :{GRAY}No messages yet. Type a message and press Send.
+STR_AGENT_CHAT_NOT_CONNECTED                                    :{GRAY}Not connected to the agent backend.
+STR_AGENT_CHAT_TRAY_EMPTY                                       :{GRAY}No attachments
+STR_AGENT_CHAT_TRAY_REMOVE                                      :x
+STR_AGENT_CHAT_MORE_ATTACHMENTS                                 :{GRAY}+{NUM} more
+STR_AGENT_CHAT_CANDIDATES_CAPTION                               :{WHITE}Choose an object
+STR_AGENT_CHAT_DEFAULT_TITLE                                    :Chat {NUM}
+STR_AGENT_CHAT_ROLE_USER                                        :You
+STR_AGENT_CHAT_ROLE_ASSISTANT                                   :Agent
+STR_AGENT_CHAT_ROLE_SYSTEM                                      :System
+STR_AGENT_CHAT_ROLE_TOOL                                        :Tool
+STR_AGENT_CHAT_MESSAGE_STATUS                                   : ({RAW_STRING})
+STR_AGENT_CHAT_ATTACHMENT_POINT                                 :Point {NUM}, {NUM}
+STR_AGENT_CHAT_ATTACHMENT_TILE                                  :Tile {NUM}, {NUM}
+STR_AGENT_CHAT_ATTACHMENT_OBJECT                                :{RAW_STRING} {NUM}
+STR_AGENT_CHAT_ATTACHMENT_STALE                                 :{RAW_STRING} (stale)
+STR_AGENT_CHAT_ATTACHMENT_UNVERIFIED                            :{RAW_STRING} (unverified)
+STR_AGENT_CHAT_TYPE_POINT                                       :Point
+STR_AGENT_CHAT_TYPE_TILE                                        :Tile
+STR_AGENT_CHAT_TYPE_TOWN                                        :Town
+STR_AGENT_CHAT_TYPE_STATION                                     :Station
+STR_AGENT_CHAT_TYPE_INDUSTRY                                    :Industry
+STR_AGENT_CHAT_TYPE_VEHICLE                                     :Vehicle
+STR_AGENT_CHAT_TYPE_SIGN                                        :Sign
+STR_AGENT_CHAT_TYPE_COMPANY                                     :Company
+STR_AGENT_CHAT_TYPE_UNKNOWN                                     :Object
+STR_AGENT_CHAT_STATUS_IDLE                                      :{GRAY}Agent: idle
+STR_AGENT_CHAT_STATUS_THINKING                                  :{GRAY}Agent: thinking...
+STR_AGENT_CHAT_STATUS_TOOL                                      :{GRAY}Agent: {RAW_STRING}
+STR_AGENT_CHAT_STATUS_DONE                                      :{GRAY}Agent: done
+STR_AGENT_CHAT_STATUS_FAILED                                    :{RED}Agent: failed
+STR_AGENT_CHAT_STATUS_STOPPED                                   :{GRAY}Agent: stopped
+STR_AGENT_CHAT_STATUS_SETTLING                                  :{GRAY}Agent: finishing...
+STR_AGENT_CHAT_STATUS_STOPPING                                  :{GRAY}Agent: stopping...
+STR_AGENT_CHAT_STATUS_UNAVAILABLE                               :{RED}Agent: unavailable
+STR_AGENT_CHAT_STATUS_WINDOW                                    :{RAW_STRING} - {RAW_STRING}
+STR_AGENT_CHAT_STATUS_TOOLTIP                                   :Open the agent chat window
+STR_AGENT_CHAT_ERROR                                            :{RED}Error: {RAW_STRING}
+STR_AGENT_CHAT_ERROR_UNKNOWN                                    :request failed
+STR_AGENT_CHAT_TYPE_DEPOT                                       :Depot
+STR_AGENT_CHAT_TYPE_WAYPOINT                                    :Waypoint
+STR_AGENT_CHAT_TYPE_BUOY                                        :Buoy
+STR_AGENT_CHAT_TYPE_HOUSE                                       :House
+STR_AGENT_CHAT_TYPE_GROUP                                       :Group
+STR_AGENT_CHAT_TYPE_ENGINE                                      :Engine
+STR_AGENT_CHAT_TYPE_CARGO                                       :Cargo
+STR_AGENT_CHAT_TYPE_OBJECT                                      :Object
+STR_AGENT_CHAT_KIND_TERRAIN                                     :Open landscape
+STR_AGENT_CHAT_KIND_RAIL                                        :Rail
+STR_AGENT_CHAT_KIND_ROAD                                        :Road
+STR_AGENT_CHAT_KIND_TRAM                                        :Tram
+STR_AGENT_CHAT_KIND_SIGNAL                                      :Signal
+STR_AGENT_CHAT_KIND_TREES                                       :Trees
+STR_AGENT_CHAT_KIND_WATER                                       :Water
+STR_AGENT_CHAT_KIND_BRIDGE                                      :Bridge
+STR_AGENT_CHAT_KIND_TUNNEL                                      :Tunnel
+STR_AGENT_CHAT_ATTACHMENT_TILE_WHAT                             :{RAW_STRING} tile {NUM}, {NUM}
+STR_AGENT_CHAT_ATTACHMENT_TILE_KIND_SUBTYPE                    :{RAW_STRING} ({RAW_STRING}) tile {NUM}, {NUM}
+STR_AGENT_CHAT_SUBTYPE_GRASS                                   :grass
+STR_AGENT_CHAT_SUBTYPE_ROUGH                                   :rough ground
+STR_AGENT_CHAT_SUBTYPE_ROCKS                                   :rocks
+STR_AGENT_CHAT_SUBTYPE_FIELDS                                  :fields
+STR_AGENT_CHAT_SUBTYPE_DESERT                                  :desert
+STR_AGENT_CHAT_SUBTYPE_SNOW_OR_DESERT                          :snow or desert
+STR_AGENT_CHAT_SUBTYPE_SHORE                                   :shore
+STR_AGENT_CHAT_SUBTYPE_ROUGH_SNOW                              :rough snow
+STR_AGENT_CHAT_SUBTYPE_COAST                                   :coast
+STR_AGENT_CHAT_SUBTYPE_CANAL                                   :canal
+STR_AGENT_CHAT_SUBTYPE_RIVER                                   :river
+STR_AGENT_CHAT_SUBTYPE_LOCK                                    :lock
+STR_AGENT_CHAT_SUBTYPE_WATER                                   :water
+STR_AGENT_CHAT_SUBTYPE_CLEAR_ROCKS                             :rocks in the water
+STR_AGENT_CHAT_SUBTYPE_COAST_ROCKS                             :coastal rocks
+STR_AGENT_CHAT_SUBTYPE_DEPOT                                   :depot
+STR_AGENT_CHAT_SUBTYPE_SIGNALS                                 :signals
+STR_AGENT_CHAT_SUBTYPE_SEMAPHORE                               :semaphore
+STR_AGENT_CHAT_SUBTYPE_ELECTRIC                                :electric
+STR_AGENT_CHAT_SUBTYPE_AIR                                     :air
+STR_AGENT_CHAT_ADD_COMPANY                                      :Add company
+STR_AGENT_CHAT_ADD_COMPANY_TOOLTIP                              :Pick a company to attach to the message

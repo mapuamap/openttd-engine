@@ -427,7 +427,7 @@ const CmdStruct *TranslateCmdForCompare(const CmdStruct *a)
 	return a;
 }
 
-static bool CheckCommandsMatch(std::string_view a, std::string_view b, std::string_view name)
+bool CheckCommandsMatch(std::string_view a, std::string_view b, std::string_view name)
 {
 	/* If we're not translating, i.e. we're compiling the base language,
 	 * it is pointless to do all these checks as it'll always be correct.
@@ -459,9 +459,13 @@ static bool CheckCommandsMatch(std::string_view a, std::string_view b, std::stri
 	}
 
 	/* if we reach here, all non consumer commands match up.
-	 * Check if the non consumer commands match up also. */
+	 * Check if the non consumer commands match up also.
+	 * Both sides are compared in their canonical form: a translation may spell a string parameter
+	 * as {STRING} or as {RAW_STRING}, the way the master string spells it, and both describe the
+	 * same kind of parameter. Comparing only the master side would drop every translation that
+	 * uses {RAW_STRING} for a {RAW_STRING} master string. */
 	for (size_t i = 0; i < templ.consuming_commands.max_size(); i++) {
-		if (TranslateCmdForCompare(templ.consuming_commands[i]) != lang.consuming_commands[i]) {
+		if (TranslateCmdForCompare(templ.consuming_commands[i]) != TranslateCmdForCompare(lang.consuming_commands[i])) {
 			StrgenWarning("{}: Param idx #{} '{}' doesn't match with template command '{}'", name, i,
 				lang.consuming_commands[i]  == nullptr ? "<empty>" : TranslateCmdForCompare(lang.consuming_commands[i])->cmd,
 				templ.consuming_commands[i] == nullptr ? "<empty>" : templ.consuming_commands[i]->cmd);

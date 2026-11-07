@@ -156,6 +156,26 @@ static void AskUnsafeUnpauseCallback(Window *, bool confirmed)
 }
 
 /**
+ * Revision of the pause state of this process.
+ *
+ * Every change of the pause mode that actually goes through Commands::Pause bumps it, whoever
+ * posted that command: the player's toolbar, the console, a GameScript or an agent tool. The
+ * pause reasons the engine sets for itself (saving, loading, a query on an unsafe unpause) do not
+ * go through the command at that moment, so they are not a decision of the player or the agent
+ * and do not bump it; the command they eventually post does.
+ */
+static uint32_t _pause_revision = 0;
+
+/**
+ * Get the current revision of the pause state.
+ * @return The revision; monotonic for the lifetime of the process.
+ */
+uint32_t PauseRevision()
+{
+	return _pause_revision;
+}
+
+/**
  * Pause/Unpause the game (server-only).
  * Set or unset a bit in the pause mode. If pause mode is zero the game is
  * unpaused. A bitset is used instead of a boolean value/counter to have
@@ -203,6 +223,9 @@ CommandCost CmdPause(DoCommandFlags flags, PauseMode mode, bool pause)
 					_pause_mode = {};
 				}
 			}
+
+			/* A command that changed the pause decision is a new revision; a no-op one is not. */
+			if (_pause_mode != prev_mode) _pause_revision++;
 
 			NetworkHandlePauseChange(prev_mode, mode);
 

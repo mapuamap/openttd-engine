@@ -56,6 +56,22 @@ add_files(
 )
 
 add_files(
+    agent_admin_tools.cpp
+    agent_admin_tools.h
+    agent_blueprint_tools.cpp
+    agent_blueprint_tools.h
+    agent_bridge.cpp
+    agent_bridge.h
+    agent_capture.cpp
+    agent_capture.h
+    agent_chat_gui.cpp
+    agent_chat_gui.h
+    agent_command_catalog.cpp
+    agent_command_catalog.h
+    agent_game_tools.cpp
+    agent_game_tools.h
+    agent_transport_tools.cpp
+    agent_transport_tools.h
     aircraft.h
     aircraft_cmd.cpp
     aircraft_cmd.h

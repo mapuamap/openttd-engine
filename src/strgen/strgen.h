@@ -149,6 +149,7 @@ struct ParsedCommandStruct {
 };
 
 const CmdStruct *TranslateCmdForCompare(const CmdStruct *a);
+bool CheckCommandsMatch(std::string_view a, std::string_view b, std::string_view name);
 ParsedCommandStruct ExtractCommandString(std::string_view s, bool warnings);
 
 void StrgenWarningI(const std::string &msg);
